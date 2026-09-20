@@ -10,12 +10,10 @@
 #include "TFT_eSPI.h"
 #include "RotorHazardLogo.h"
 #include "Orbitron50pt7b.h"
-#include "Orbitron56pt7b.h"
 #include "Orbitron68pt7b.h"
 
 #define DNSWITCH    D5
 #define UPSWITCH    D6
-#define WAKEUPPIN   10
 
 #define DISPLAYWIDTH 648
 #define DISPLAYHEIGHT 480
@@ -39,12 +37,9 @@ WebServer   server(80);
 
 uint8_t raceCount;
 bool    practiceMode;
-bool    justPoweredUp;
-bool    LEDToggle;
 bool	inAPMode;
 bool    standAloneMode;
 
-String  textField = "";
 uint8_t heatCount = 0;
 
 Preferences prefs;
@@ -61,7 +56,6 @@ String standAlone = "";
 
 void doPractice() {
 
-    int16_t     X, Y;
     uint16_t    W, H;
 
     char    charBuff[128];
@@ -106,7 +100,6 @@ void doPractice() {
 
 
 void    doRaceCount() {
-    int16_t     X, Y;
     uint16_t    W, H;
 
     char        charBuff[128];
@@ -763,8 +756,7 @@ void checkClearAll(uint8_t H) {
 
 void setup()
 {
-    int16_t     X, Y;
-    uint16_t    W, H;
+    uint16_t    H;
 
     char        charBuff[128];
 
@@ -776,11 +768,9 @@ void setup()
 
     pinMode(UPSWITCH, INPUT_PULLUP);
     pinMode(DNSWITCH, INPUT_PULLUP);
-    pinMode(WAKEUPPIN, INPUT_PULLUP);
 
     raceCount = 0;
     practiceMode = false;
-    justPoweredUp = true;
 
     epaper.begin();
     epaper.fillScreen(TFT_WHITE);
