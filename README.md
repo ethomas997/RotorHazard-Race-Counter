@@ -149,7 +149,6 @@ The sketch in this repo is V2.0 as received, with one change: `#include <webserv
 include names to libraries case-sensitively even on Windows, so the original did not compile in the
 Arduino IDE / arduino-cli (VisualMicro is more forgiving). Items identified for a first cleanup pass:
 
-* `sprintf("%s", ssidStored)` passes an Arduino `String` object to `%s` (undefined behaviour; needs `.c_str()`).
 * `/reset` wipes WiFi credentials on a bare `GET` – easy to hit by accident; should be a POST with confirmation.
 * The WiFi connect loop never times out and does a full ePaper refresh every 300 ms while waiting.
 * `handleSettings()` re-registers the `/save` route on every page view; `handleReset()` prints in whatever

@@ -825,7 +825,7 @@ void setup()
 
 	inAPMode = false;
 
-    sprintf(charBuff, "Connecting to SSID: %s\n", ssidStored);
+    sprintf(charBuff, "Connecting to SSID: %s\n", ssidStored.c_str());
     Serial.print(charBuff);
 
     epaper.setCursor(0, H);              // center top
