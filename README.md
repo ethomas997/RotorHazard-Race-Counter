@@ -150,7 +150,7 @@ include names to libraries case-sensitively even on Windows, so the original did
 Arduino IDE / arduino-cli (VisualMicro is more forgiving). Items identified for a first cleanup pass:
 
 * `/reset` wipes WiFi credentials on a bare `GET` – easy to hit by accident; should be a POST with confirmation.
-* The WiFi connect loop never times out and does a full ePaper refresh every 300 ms while waiting.
+* The WiFi connect loop never times out (the only escape is holding both buttons).
 * `bg.png` (22 KB) could be embedded as a `PROGMEM` array like the logo, eliminating the SPIFFS upload step.
 * API is browser-oriented: numeric heat only (RotorHazard heats have names), practice is toggle-only, no
   status endpoint. Needed before RotorHazard can drive it.

@@ -28,6 +28,9 @@
 
 #define CENTERINGOFFSET -10     // the width of text returned by the library is saying the text is slightly wider than it actually is, so it doesn't center right. This compensates.
 
+#define CONNECT_POLL_MS     300     // how often to check for a WiFi connection (and the both-buttons escape) while connecting
+#define CONNECT_REFRESH_MS  10000   // how often to refresh the ePaper with progress dots while connecting
+
 #ifdef EPAPER_ENABLE    // Only compile this code if EPAPER_ENABLE is defined (in User_Setup.h, typically part of the TFT_eSPI library 
                         // Except..., the HW used for this display requires the Seeed_GFX library, a fork of the Adafruit_GFX library, which replaces the TFT_eSPI library 
 						// You have to remove the Adafruit_GFX library and replace it with the Seeed_GFX library, since the Seeed library emulates the Adafruit library but adds extra functionality for the ePaper display.
@@ -845,11 +848,16 @@ void setup()
 
     epaper.setFreeFont(&FreeSans12pt7b);
 
+    unsigned long lastRefresh = millis();
+
     while (WiFi.status() != WL_CONNECTED) {
-        delay(300);
+        delay(CONNECT_POLL_MS);
         Serial.print(".");
-        epaper.print(".");
-        epaper.update();
+        epaper.print(".");                                      // dots accumulate in the frame buffer...
+        if (millis() - lastRefresh >= CONNECT_REFRESH_MS) {     // ...but a full ePaper refresh takes seconds and wears the panel, so only push them out occasionally
+            epaper.update();
+            lastRefresh = millis();
+        }
         checkClearAll(H);
     }
 
