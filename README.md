@@ -99,10 +99,10 @@ All other libraries (`WiFi`, `WebServer`, `Preferences`, `SPIFFS`) ship with the
 * With no saved credentials the device starts an open access point **`RaceCounter-Setup`** and shows the AP
   IP (`192.168.4.1`) and MAC on the panel. Connect to it, open `http://192.168.4.1`, enter your SSID and
   password, *Save & Reboot*.
-* It then connects to that network, shows the IP it was given for a few seconds, and displays the
-  RotorHazard splash screen. The web interface is at `http://<ip>/`.
-* Note: the MAC shown on the AP screen is the *soft-AP* MAC. On ESP32 the station MAC your router sees is
-  that value with the last octet minus one. Use the router's lease table if you want a static lease.
+* It then connects to that network, shows the IP it was given and its MAC for a few seconds, and displays
+  the RotorHazard splash screen. The web interface is at `http://<ip>/`.
+* The MAC shown on both the AP screen and the "Connected" screen is the station MAC – the one your router
+  sees – so it can be used directly for a static DHCP lease.
 
 ### Buttons
 

@@ -5,6 +5,7 @@
 #include <WebServer.h>
 #include <Preferences.h>
 #include <SPIFFS.h>
+#include <esp_mac.h>
 
 
 #include "TFT_eSPI.h"
@@ -583,7 +584,25 @@ void setStandAlone() {
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// This function is called at startup if there is no stored WiFi SSID and password. 
+// Returns the station (client) MAC address as a string. This is the address the router sees when the device
+// connects to a WiFi network, so it's the one to use for a static DHCP lease. Read from the chip directly
+// (rather than WiFi.macAddress()) so it is also correct while running as an access point, where the station
+// interface doesn't exist yet. Note the soft-AP MAC is different (station MAC + 1 in the last octet).
+//
+
+String stationMacAddress() {
+    uint8_t mac[6];
+    char    buf[18];
+
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return String(buf);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// This function is called at startup if there is no stored WiFi SSID and password.
 // It sets up the device as a WiFi access point, displays the AP information on the screen, and starts the web server to handle configuration requests.
 //
 
@@ -602,7 +621,7 @@ void startConfigAP() {
     epaper.print("AP IP: ");
     epaper.println(WiFi.softAPIP());
     epaper.print("MAC: ");
-    epaper.println(WiFi.softAPmacAddress());
+    epaper.println(stationMacAddress());
 	epaper.println("\npush both buttons to set standalone mode");
     epaper.update();
 
@@ -837,12 +856,16 @@ void setup()
     Serial.println("\nConnected!");
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
+    Serial.print("MAC: ");
+    Serial.println(stationMacAddress());
 
     epaper.print("...Connected!\n");
 
     epaper.setFreeFont(&FreeSansBold12pt7b);
     epaper.print("\nIPAddress: ");
-    epaper.print(WiFi.localIP());
+    epaper.println(WiFi.localIP());
+    epaper.print("MAC: ");
+    epaper.println(stationMacAddress());
     epaper.update();
 
     server.on("/", handleRoot);
