@@ -125,8 +125,8 @@ both reboot the device.
 
 ### HTTP API
 
-Every endpoint is a plain `GET`, changes the display, and replies `303 → /` (so a browser lands back on the
-main page). Scripts should send `allow_redirects=False` or just ignore the redirect.
+Every endpoint except `/reset` is a plain `GET`, changes the display, and replies `303 → /` (so a browser
+lands back on the main page). Scripts should send `allow_redirects=False` or just ignore the redirect.
 
 | Endpoint | Effect |
 |---|---|
@@ -137,7 +137,7 @@ main page). Scripts should send `allow_redirects=False` or just ignore the redir
 | `/practice` | **toggle** practice mode (banner "PRACTICE", big "P") |
 | `/splash` | heat 0, race 0, practice off, show the RotorHazard splash screen (this is the web *Reset* button) |
 | `/settings` | WiFi settings page |
-| `/reset` | **erases the saved WiFi credentials** and reboots into AP mode (the settings-page *Clear* button) |
+| `/reset` (`POST` only) | **erases the saved WiFi credentials** and reboots into AP mode (the settings-page *Clear* button, behind a confirmation) |
 | `/bg.png` | the SPIFFS background image |
 
 Out-of-range values are ignored. There is no endpoint to *read* the current state.
@@ -149,7 +149,6 @@ The sketch in this repo is V2.0 as received, with one change: `#include <webserv
 include names to libraries case-sensitively even on Windows, so the original did not compile in the
 Arduino IDE / arduino-cli (VisualMicro is more forgiving). Items identified for a first cleanup pass:
 
-* `/reset` wipes WiFi credentials on a bare `GET` – easy to hit by accident; should be a POST with confirmation.
 * The WiFi connect loop never times out (the only escape is holding both buttons).
 * `bg.png` (22 KB) could be embedded as a `PROGMEM` array like the logo, eliminating the SPIFFS upload step.
 * API is browser-oriented: numeric heat only (RotorHazard heats have names), practice is toggle-only, no

@@ -406,7 +406,7 @@ void handlePractice() {
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// the Reset button. This clears the stored WiFi SSID and password, shows a message on the display, and restarts the device after a delay.
+// the settings page "Clear" button (POST /reset). This clears the stored WiFi SSID and password, shows a message on the display, and restarts the device after a delay.
 //
 
 void handleReset() {
@@ -417,6 +417,8 @@ void handleReset() {
     prefs.remove("ssid");
     prefs.remove("pass");
     prefs.end();
+
+    server.send(200, "text/html", "<html><body style='font-family:sans-serif;'><h2>WiFi credentials cleared.<br>Rebooting into setup mode...</h2></body></html>");
 
     epaper.fillScreen(TFT_WHITE);
     epaper.setFreeFont(&FreeSansBold12pt7b);    // last font used was probably the big race-number font
@@ -718,12 +720,16 @@ void handleSettings() {
 
     page += "<div class='buttonRow'>";
     page += "  <button type='submit' class='updateBtn'>Update</button>";
-    page += "  <button type='button' onclick=\"location.href='/reset'\">Clear</button>";
+    page += "  <button type='submit' form='clearForm'>Clear</button>";       // submits the separate POST form below, not this one
     page += "</div>";
 
     page += "<h4><br>Pressing either button will initiate a reboot<br></h4><h5>Use browser [BACK] to quit without saving</h5>";
 
     page += "</form>";
+
+    // Clearing the credentials is a POST with a confirmation so it can't be triggered by a stray link, prefetch or browser history entry
+    page += "<form id='clearForm' method='POST' action='/reset' onsubmit=\"return confirm('Erase the saved WiFi SSID and password and reboot into setup mode?')\"></form>";
+
     page += "</div>";
 
     page += "<script>";
@@ -886,7 +892,7 @@ void setup()
     server.on("/practice", handlePractice);
     server.on("/settings", handleSettings);
     server.on("/save", HTTP_POST, handleSaveAP);    // settings page "Update" button
-    server.on("/reset", handleReset);
+    server.on("/reset", HTTP_POST, handleReset);   // POST only: erases the WiFi credentials, so a plain GET must not be able to trigger it
     server.on("/splash", handleSplash);
 
     SPIFFS.begin(true);
