@@ -27,6 +27,7 @@ small built-in web page and HTTP API. The longer-term goal of this project is to
 * Seeed **ePaper Driver Board for XIAO** (V2) – 24-pin FPC, JST battery input with charge IC
 * **5.83" monochrome ePaper**, 648×480, UC8179 controller, 24-pin FPC
 * Two momentary push-buttons to GND: **DN → D5**, **UP → D6** (internal pull-ups)
+* 18650 Li-ion cell with a latching power button; USB-C pass-through port for charging and programming
 * 3D-printed housing (STLs not yet in this repo)
 
 Full list with links: [docs/parts-list.md](docs/parts-list.md).
