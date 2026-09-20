@@ -12,7 +12,8 @@ small built-in web page and HTTP API. The longer-term goal of this project is to
 
 | Path | Contents |
 |---|---|
-| `firmware/RaceDisplayV2/` | Arduino sketch as received from RocketSled (Aug 9 2026 build, "V2.0"); only the two include names changed (see Known issues) |
+| `firmware/RaceDisplayV2/` | Arduino sketch (RocketSled's V2.0 of Aug 9 2026, plus the fixes listed in `git log`) |
+| `firmware/RaceDisplayV2/sketch.yaml` | Board / partition / option settings, read by arduino-cli and Arduino IDE 2.2+ |
 | `firmware/RaceDisplayV2/bg_png.h` | Web-page background image (RotorHazard logo) embedded as a byte array; regenerate with `tools/bin2header.py` |
 | `firmware/RaceDisplayV2/driver.h` | Seeed_GFX hardware selection (board + panel). **Required** – see Building |
 | `firmware/libraries/Seeed_GFX/` | Git submodule: the display library, pinned to a known-good commit |
@@ -32,28 +33,28 @@ Full list with links: [docs/parts-list.md](docs/parts-list.md).
 
 ## Building the firmware
 
-RocketSled builds with Visual Studio + VisualMicro; the sketch also builds in the Arduino IDE 2.x. Settings
-below are taken from the VisualMicro project file that shipped with the code, and were verified on
-2026-09-20 with `arduino-cli` 0.35.2, esp32 core 3.3.8 and Seeed_GFX 2.0.3 (commit `0dfdd71`):
+RocketSled builds with Visual Studio + VisualMicro; the sketch also builds in the Arduino IDE 2.x and with
+`arduino-cli`. Verified 2026-09-20 with `arduino-cli` 0.35.2, esp32 core 3.3.8 and Seeed_GFX 2.0.3
+(commit `0dfdd71`):
 
 ```
-Sketch uses 1256535 bytes (95%) of program storage space. Maximum is 1310720 bytes.
-Global variables use 37952 bytes (11%) of dynamic memory.
+Sketch uses 1251067 bytes (39%) of program storage space. Maximum is 3145728 bytes.
+Global variables use 37920 bytes (11%) of dynamic memory.
 ```
 
-Note the flash usage: the default partition's 1.2 MB app slot is **95 % full**. Any feature work (a
-Socket.IO client, more fonts) will need the *Huge APP (3MB No OTA/1MB SPIFFS)* partition scheme instead –
-the device doesn't use OTA, so nothing is lost.
-
-Command-line equivalent of the IDE settings below:
+The board and options are recorded in `firmware/RaceDisplayV2/sketch.yaml`, which arduino-cli and Arduino
+IDE 2.2+ pick up automatically, so the command line is just:
 
 ```bash
-arduino-cli compile -b esp32:esp32:XIAO_ESP32C3:PartitionScheme=default,CDCOnBoot=default --libraries firmware/libraries firmware/RaceDisplayV2
+arduino-cli compile --libraries firmware/libraries firmware/RaceDisplayV2
 ```
 
 1. **Board package:** *esp32 by Espressif Systems* (RocketSled used 3.3.8; board-manager URL
    `https://espressif.github.io/arduino-esp32/package_esp32_index.json`). Board: **XIAO_ESP32C3**.
-   * Partition Scheme: **Default 4MB with spiffs (1.2MB APP/1.5MB SPIFFS)**
+   * Partition Scheme: **Huge APP (3MB No OTA/1MB SPIFFS)** – the sketch filled 95 % of the default
+     scheme's 1.2 MB app slot, and the device doesn't use OTA, so the larger no-OTA layout costs nothing.
+     (RocketSled's units were flashed with the *Default 4MB* scheme; re-flashing with this one is fine – the
+     partition table is rewritten as part of the upload.)
    * USB CDC On Boot: **Enabled**
 2. **Display library:** **[Seeed_GFX](https://github.com/Seeed-Studio/Seeed_GFX)** is not in the Arduino
    Library Manager, so it is vendored here as a git submodule at `firmware/libraries/Seeed_GFX`, pinned
@@ -134,10 +135,13 @@ Out-of-range values are ignored. There is no endpoint to *read* the current stat
 
 ## Known issues / roadmap
 
-The sketch in this repo is V2.0 as received, with one change: `#include <webserver.h>` /
-`<preferences.h>` were corrected to `WebServer.h` / `Preferences.h`. The Arduino build system matches
-include names to libraries case-sensitively even on Windows, so the original did not compile in the
-Arduino IDE / arduino-cli (VisualMicro is more forgiving). Items identified for a first cleanup pass:
+The sketch is RocketSled's V2.0 plus a series of small fixes, each its own commit – see `git log`. The
+first import commit holds the code exactly as received. Note for anyone building from that original: the
+Arduino build system matches include names to libraries case-sensitively even on Windows, so
+`<webserver.h>` / `<preferences.h>` had to become `WebServer.h` / `Preferences.h` (VisualMicro is more
+forgiving).
+
+Remaining items:
 
 * The WiFi connect loop never times out (the only escape is holding both buttons).
 * API is browser-oriented: numeric heat only (RotorHazard heats have names), practice is toggle-only, no

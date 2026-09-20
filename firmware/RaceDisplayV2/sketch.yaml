@@ -1,0 +1,3 @@
+# Board and build options for this sketch. Read by arduino-cli (no -b needed) and by Arduino IDE 2.2+.
+# huge_app: 3 MB app partition, no OTA, 1 MB SPIFFS (unused). The default scheme's 1.2 MB app slot was 95% full.
+default_fqbn: esp32:esp32:XIAO_ESP32C3:PartitionScheme=huge_app,CDCOnBoot=default
