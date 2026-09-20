@@ -4,12 +4,12 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Preferences.h>
-#include <SPIFFS.h>
 #include <esp_mac.h>
 
 
 #include "TFT_eSPI.h"
 #include "RotorHazardLogo.h"
+#include "bg_png.h"
 #include "Orbitron50pt7b.h"
 #include "Orbitron68pt7b.h"
 
@@ -895,41 +895,9 @@ void setup()
     server.on("/reset", HTTP_POST, handleReset);   // POST only: erases the WiFi credentials, so a plain GET must not be able to trigger it
     server.on("/splash", handleSplash);
 
-    SPIFFS.begin(true);
-
-    /* uncomment to list files in SPIFFS, for debugging
-    Serial.println("SPIFFS contents:");
-
-    File root = SPIFFS.open("/");
-    if (!root) {
-        Serial.println("Failed to open directory");
-        return;
-    }
-    if (!root.isDirectory()) {
-        Serial.println("Not a directory");
-        return;
-    }
-   
-    File file = root.openNextFile();
-    while (file) {
-        Serial.print("FILE: ");
-        Serial.print(file.name());
-        Serial.print("  SIZE: ");
-        Serial.println(file.size());
-        file = root.openNextFile();
-    }
-    */
-
-    server.on("/bg.png", []() {
-        File file = SPIFFS.open("/bg.png", "r");
-        if (!file) {
-            server.send(404, "text/plain", "File not found");
-            Serial.println("SPIFFS open failed for bg.png");
-            return;
-        }
-
-        server.streamFile(file, "image/png");
-        file.close();
+    server.on("/bg.png", []() {                    // web page background image, embedded in the firmware (see bg_png.h)
+        server.sendHeader("Cache-Control", "max-age=86400");
+        server.send_P(200, "image/png", (PGM_P)BG_PNG, BG_PNG_LEN);
         });
 
     server.begin();

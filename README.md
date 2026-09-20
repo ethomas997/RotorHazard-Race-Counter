@@ -13,11 +13,12 @@ small built-in web page and HTTP API. The longer-term goal of this project is to
 | Path | Contents |
 |---|---|
 | `firmware/RaceDisplayV2/` | Arduino sketch as received from RocketSled (Aug 9 2026 build, "V2.0"); only the two include names changed (see Known issues) |
-| `firmware/RaceDisplayV2/Data/bg.png` | Web-page background image; must be uploaded to the SPIFFS partition separately |
+| `firmware/RaceDisplayV2/bg_png.h` | Web-page background image (RotorHazard logo) embedded as a byte array; regenerate with `tools/bin2header.py` |
 | `firmware/RaceDisplayV2/driver.h` | Seeed_GFX hardware selection (board + panel). **Required** – see Building |
 | `firmware/libraries/Seeed_GFX/` | Git submodule: the display library, pinned to a known-good commit |
 | `docs/parts-list.md` | Bill of materials |
 | `assets/` | Source font (Orbitron Bold, OFL) and logo images used to generate the `.h` bitmaps |
+| `tools/bin2header.py` | Turns a binary file into a `PROGMEM` C array header |
 
 ## Hardware
 
@@ -76,21 +77,10 @@ arduino-cli compile -b esp32:esp32:XIAO_ESP32C3:PartitionScheme=default,CDCOnBoo
    #define USE_XIAO_EPAPER_DRIVER_BOARD
    ```
    If you change the panel or carrier board, regenerate this with Seeed's configuration tool.
-4. Compile and upload the sketch over USB-C.
-5. **Upload the SPIFFS image.** The web page background lives in the flash filesystem, not the sketch.
-   Arduino IDE 2.x has no built-in uploader. Options:
-   * a community SPIFFS uploader extension for IDE 2.2.1+, e.g.
-     [arduino-spiffs-upload](https://github.com/ivanlee1007/arduino-spiffs-upload) (drop the VSIX into
-     `C:\Users\<you>\.arduinoIDE\plugins\`, restart the IDE, then command palette →
-     *Upload SPIFFS to Pico/ESP8266/ESP32*). These tools read the sketch's `data/` folder; RocketSled's folder
-     is spelled `Data`, which only matters on a case-sensitive filesystem.
-   * or build the image with `mkspiffs` (bundled with the esp32 core) and flash it with `esptool` at the
-     SPIFFS partition offset of the *Default 4MB* scheme (`0x290000`).
-   * VisualMicro has this built in.
+4. Compile and upload the sketch over USB-C. That's it – there is no separate filesystem image to upload;
+   the web page's background image is compiled into the firmware (`bg_png.h`).
 
-   If this step is skipped the device still works – the web page just has a white background.
-
-All other libraries (`WiFi`, `WebServer`, `Preferences`, `SPIFFS`) ship with the esp32 core.
+All other libraries (`WiFi`, `WebServer`, `Preferences`) ship with the esp32 core.
 
 ## Operation
 
@@ -138,7 +128,7 @@ lands back on the main page). Scripts should send `allow_redirects=False` or jus
 | `/splash` | heat 0, race 0, practice off, show the RotorHazard splash screen (this is the web *Reset* button) |
 | `/settings` | WiFi settings page |
 | `/reset` (`POST` only) | **erases the saved WiFi credentials** and reboots into AP mode (the settings-page *Clear* button, behind a confirmation) |
-| `/bg.png` | the SPIFFS background image |
+| `/bg.png` | the web page background image |
 
 Out-of-range values are ignored. There is no endpoint to *read* the current state.
 
@@ -150,7 +140,6 @@ include names to libraries case-sensitively even on Windows, so the original did
 Arduino IDE / arduino-cli (VisualMicro is more forgiving). Items identified for a first cleanup pass:
 
 * The WiFi connect loop never times out (the only escape is holding both buttons).
-* `bg.png` (22 KB) could be embedded as a `PROGMEM` array like the logo, eliminating the SPIFFS upload step.
 * API is browser-oriented: numeric heat only (RotorHazard heats have names), practice is toggle-only, no
   status endpoint. Needed before RotorHazard can drive it.
 * Planned: connect to a RotorHazard server directly (Socket.IO `race_status` / `current_heat` events carry
