@@ -12,10 +12,10 @@ small built-in web page and HTTP API. The longer-term goal of this project is to
 
 | Path | Contents |
 |---|---|
-| `firmware/RaceDisplayV2/` | Arduino sketch (RocketSled's V2.0 of Aug 9 2026, plus the fixes listed in `git log`) |
-| `firmware/RaceDisplayV2/sketch.yaml` | Board / partition / option settings, read by arduino-cli and Arduino IDE 2.2+ |
-| `firmware/RaceDisplayV2/bg_png.h` | Web-page background image (RotorHazard logo) embedded as a byte array; regenerate with `tools/bin2header.py` |
-| `firmware/RaceDisplayV2/driver.h` | Seeed_GFX hardware selection (board + panel). **Required** – see Building |
+| `firmware/RaceCounter/` | Arduino sketch (RocketSled's V2.0 of Aug 9 2026, plus the fixes listed in `git log`) |
+| `firmware/RaceCounter/sketch.yaml` | Board / partition / option settings, read by arduino-cli and Arduino IDE 2.2+ |
+| `firmware/RaceCounter/bg_png.h` | Web-page background image (RotorHazard logo) embedded as a byte array; regenerate with `tools/bin2header.py` |
+| `firmware/RaceCounter/driver.h` | Seeed_GFX hardware selection (board + panel). **Required** – see Building |
 | `firmware/libraries/Seeed_GFX/` | Git submodule: the display library, pinned to a known-good commit |
 | `docs/parts-list.md` | Bill of materials |
 | `assets/` | Source font (Orbitron Bold, OFL) and logo images used to generate the `.h` bitmaps |
@@ -43,11 +43,11 @@ Sketch uses 1251067 bytes (39%) of program storage space. Maximum is 3145728 byt
 Global variables use 37920 bytes (11%) of dynamic memory.
 ```
 
-The board and options are recorded in `firmware/RaceDisplayV2/sketch.yaml`, which arduino-cli and Arduino
+The board and options are recorded in `firmware/RaceCounter/sketch.yaml`, which arduino-cli and Arduino
 IDE 2.2+ pick up automatically, so the command line is just:
 
 ```bash
-arduino-cli compile --libraries firmware/libraries firmware/RaceDisplayV2
+arduino-cli compile --libraries firmware/libraries firmware/RaceCounter
 ```
 
 1. **Board package:** *esp32 by Espressif Systems* (RocketSled used 3.3.8; board-manager URL
@@ -113,7 +113,8 @@ Heat number can only be set from the web interface / HTTP API.
 
 The main page has −/+ and *Set* controls for Heat and Race, a *Practice* toggle, and *Reset*. The 🛠 icon
 top-right opens the settings page where the SSID/password can be changed (*Update*) or erased (*Clear*);
-both reboot the device.
+both reboot the device. The settings page also shows the firmware version (`FW_VERSION` in `RaceCounter.ino`,
+also printed in the serial banner at boot).
 
 ### HTTP API
 

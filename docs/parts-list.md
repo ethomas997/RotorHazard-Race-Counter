@@ -29,7 +29,7 @@
 ## Software & tools
 
 * Arduino IDE 2.x, or Visual Studio + [VisualMicro](https://www.visualmicro.com/)
-* esp32 Arduino core 3.3.x — board *XIAO_ESP32C3*, partition *Huge APP (3MB No OTA)*, *USB CDC On Boot: Enabled* (all recorded in `firmware/RaceDisplayV2/sketch.yaml`)
+* esp32 Arduino core 3.3.x — board *XIAO_ESP32C3*, partition *Huge APP (3MB No OTA)*, *USB CDC On Boot: Enabled* (all recorded in `firmware/RaceCounter/sketch.yaml`)
 * [Seeed_GFX](https://github.com/Seeed-Studio/Seeed_GFX) library (git submodule in `firmware/libraries/`; conflicts with TFT_eSPI / Adafruit_GFX)
 * `driver.h` in the sketch folder (in the repo)
 * Orbitron Bold TTF (`assets/fonts/`) + Adafruit `fontconvert`, for regenerating the `Orbitron*pt7b.h` headers

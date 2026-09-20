@@ -13,6 +13,9 @@
 #include "Orbitron50pt7b.h"
 #include "Orbitron68pt7b.h"
 
+#define FW_VERSION  "2.1.0"                     // shown on the settings page and in the serial banner
+#define PAGE_TITLE  "RotorHazard Race Counter"  // web page titles / headings
+
 #define DNSWITCH    D5
 #define UPSWITCH    D6
 
@@ -179,7 +182,7 @@ void doWelcomeScreen() {
 //
 
 String handleMainPage() {
-    String page = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1'>";
+    String page = "<!DOCTYPE html><html><head><title>" PAGE_TITLE "</title><meta name='viewport' content='width=device-width, initial-scale=1'>";
 
     page += "<style>";
 
@@ -240,7 +243,7 @@ String handleMainPage() {
 
     page += "<a href='/settings' class='settingsIcon'>&#128736;</a>";
 
-    page += "<h1>Race Count Display</h1>";
+    page += "<h1>" PAGE_TITLE "</h1>";
 
     page += "<table>";
     page += "<colgroup>";
@@ -526,20 +529,20 @@ void handleSetRace() {      // same functionality as above, but for the set race
 //
 
 void handleRootAP() {
-    String page = "<!DOCTYPE html><html><body style='font-family:sans-serif;'><head>";
+    String page = "<!DOCTYPE html><html><head><title>" PAGE_TITLE "</title>";
     page += "<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>";
     page += "<style>";
     page += "h1{font-size:26px;margin:8px 0 12px 0;font-weight:bold;}";
     page += "h2{font-size:20px;margin:4px 0;font-weight:bold;}";
     page += "h3{font-size:18px;margin:4px 0;font-weight:bold;}";
     page += "h4{font-size:16px;margin:3px 0;font-weight:bold;}";
-    
+
     page += "button{font-size:20px;height:40px;margin:2px;padding:0 10px;border-radius:6px;border:1px solid #666;background:#e0e0e0;}";
     page += "button:active{background:#ccc;}";
 
-    page += "</style>";
+    page += "</style></head><body style='font-family:sans-serif;'>";
 
-    page += "<h2>Race Count Display WiFi Setup</h2>";
+    page += "<h2>" PAGE_TITLE " WiFi Setup</h2>";
     page += "<form action='/save' method='POST'>";
     page += "SSID:<br><input name='ssid'><br><br>";
     page += "Password:<br><input name='pass' type='password'><br><br>";
@@ -658,7 +661,7 @@ void startConfigAP() {
 
 void handleSettings() {
 
-    String page = "<!DOCTYPE html><html><head>";
+    String page = "<!DOCTYPE html><html><head><title>" PAGE_TITLE " Settings</title>";
     page += "<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>";
     page += "<style>";
     page += ".main-container{max-width:480px;min-height:320px;margin:0 auto;text-align:center;}";
@@ -668,6 +671,7 @@ void handleSettings() {
     page += "h3{font-size:18px;margin:4px 0;font-weight:bold;}";
     page += "h4{font-size:14px;margin:3px 0;font-weight:normal;color:#FF0000;font-style:italic;}";
     page += "h5{font-size:14px;margin:3px 0;font-weight:bold;}";
+    page += ".version{font-size:12px;color:#888;margin-top:24px;}";
 
     page += "button{font-size:20px;height:40px;margin:2px;padding:0 10px;border-radius:6px;border:1px solid #666;background:#e0e0e0;}";
     page += "button:active{background:#ccc;}";
@@ -718,7 +722,7 @@ void handleSettings() {
     page += "</style></head><body>";
     page += "<img src='/bg.png' class='bgImg'><div class='main-container'>";
 
-    page += "<h1>Race Count Display Settings</h1>";
+    page += "<h1>" PAGE_TITLE " Settings</h1>";
     page += "<form action='/save' method='POST'>";
 
     ssidStored.replace("'", "&#39;");       // single quotes will break HTML if they're included in the SSID or password
@@ -739,6 +743,8 @@ void handleSettings() {
     page += "<h4><br>Pressing either button will initiate a reboot<br></h4><h5>Use browser [BACK] to quit without saving</h5>";
 
     page += "</form>";
+
+    page += "<p class='version'>Firmware v" FW_VERSION "</p>";
 
     // Clearing the credentials is a POST with a confirmation so it can't be triggered by a stray link, prefetch or browser history entry
     page += "<form id='clearForm' method='POST' action='/reset' onsubmit=\"return confirm('Erase the saved WiFi SSID and password and reboot into setup mode?')\"></form>";
@@ -805,7 +811,7 @@ void setup()
 
     delay(2000);
 
-    Serial.println("\n\n\n------Race Counter-----");
+    Serial.printf("\n\n\n------" PAGE_TITLE " v" FW_VERSION "-----\n");
 
     pinMode(UPSWITCH, INPUT_PULLUP);
     pinMode(DNSWITCH, INPUT_PULLUP);

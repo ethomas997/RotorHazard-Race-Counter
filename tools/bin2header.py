@@ -4,7 +4,7 @@
 Usage:  python tools/bin2header.py <input file> <output .h> <ARRAY_NAME>
 
 Example (regenerate the embedded web-page background):
-    python tools/bin2header.py assets/images/RotorHazard-Logo-416x487.png firmware/RaceDisplayV2/bg_png.h BG_PNG
+    python tools/bin2header.py assets/images/RotorHazard-Logo-416x487.png firmware/RaceCounter/bg_png.h BG_PNG
 """
 import os
 import sys
