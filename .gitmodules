@@ -1,0 +1,4 @@
+[submodule "firmware/libraries/Seeed_GFX"]
+	path = firmware/libraries/Seeed_GFX
+	url = https://github.com/Seeed-Studio/Seeed_GFX.git
+	shallow = true

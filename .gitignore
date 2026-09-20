@@ -1,0 +1,20 @@
+# VisualMicro / Visual Studio (machine-specific, absolute paths)
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.vsarduino.h
+__vm/
+.vs/
+
+# Arduino / esp32 build output
+build/
+*.bin
+*.elf
+*.map
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
