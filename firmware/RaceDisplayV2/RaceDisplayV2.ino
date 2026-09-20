@@ -628,8 +628,6 @@ void startConfigAP() {
 
 void handleSettings() {
 
-    server.on("/save", HTTP_POST, handleSaveAP);
-
     String page = "<!DOCTYPE html><html><head>";
     page += "<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>";
     page += "<style>";
@@ -866,6 +864,7 @@ void setup()
     server.on("/raceSet", handleSetRace);
     server.on("/practice", handlePractice);
     server.on("/settings", handleSettings);
+    server.on("/save", HTTP_POST, handleSaveAP);    // settings page "Update" button
     server.on("/reset", handleReset);
     server.on("/splash", handleSplash);
 
