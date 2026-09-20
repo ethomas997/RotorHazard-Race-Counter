@@ -2,8 +2,8 @@
 #include "Arduino.h"
 
 #include <WiFi.h>
-#include <webserver.h>
-#include <preferences.h>
+#include <WebServer.h>
+#include <Preferences.h>
 #include <SPIFFS.h>
 
 
