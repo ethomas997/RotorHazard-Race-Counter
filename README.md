@@ -123,7 +123,7 @@ lands back on the main page). Scripts should send `allow_redirects=False` or jus
 | Endpoint | Effect |
 |---|---|
 | `/heatInc`, `/heatDec` | heat ±1 (0…99, wraps); race resets to 1 |
-| `/heatSet?v1=N` | set heat to N (0–99). Heat 0 hides the heat number; banner shows "RACE #". Nonzero heat also resets race to 1 |
+| `/heatSet?v1=N` | set heat to N (0–99). Heat 0 hides the heat number; banner shows "RACE #". Nonzero heat shows "Heat N" and resets race to 1 |
 | `/raceInc`, `/raceDec` | race ±1 (1…99, wraps) |
 | `/raceSet?v2=N` | set race to N (1–99) |
 | `/practice` | **toggle** practice mode (banner "PRACTICE", big "P") |

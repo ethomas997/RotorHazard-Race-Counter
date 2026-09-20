@@ -140,7 +140,7 @@ void    doRaceCount() {
         epaper.setTextSize(HEATFONTSIZE);
         H = epaper.fontHeight();
 
-        sprintf(charBuff, "HEAT #%d", heatCount);
+        sprintf(charBuff, "Heat %d", heatCount);
     }
 
     W = epaper.textWidth(charBuff);
