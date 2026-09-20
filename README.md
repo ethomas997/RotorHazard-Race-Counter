@@ -100,12 +100,12 @@ All other libraries (`WiFi`, `WebServer`, `Preferences`) ship with the esp32 cor
 
 | Action | Result | Timing |
 |---|---|---|
-| UP | race number +1 (1…99, wraps) | Acts ~0.5 s after the press. Holding it auto-repeats once per panel refresh (every 2–4 s). |
-| DN | race number −1 (1…99, wraps) | Same as UP. |
-| UP + DN together, in normal operation | toggle **PRACTICE** mode | **Tap both, don't hold.** The second button must go down within 0.5 s of the first. If both are still held after the refresh (2–4 s) it toggles back again. |
+| UP | race number +1 (1…99, wraps) | Acts the moment the button is released, or after 0.25 s if it is held. One press = one step; holding does not repeat. |
+| DN | race number −1 (1…99, wraps) | Same as UP. Does nothing while the splash screen is showing. |
+| UP + DN together, in normal operation | toggle **PRACTICE** mode | Acts as soon as both are down; the second button must go down within 0.25 s of the first. Holding them does nothing further – release both before the next press. |
 | UP + DN held at power-on | erase saved WiFi credentials and standalone flag, restart into AP mode | The pins are read **once**, about 2–3 s after power-on. Hold both before switching on, keep holding until "Old SSID and password deleted…" appears, then release. |
 | UP + DN while "Connecting to SSID…" | same – use this if it is stuck on a network it can't reach | Checked every 0.3 s while connecting; any simultaneous press of ≥ 0.3 s works. |
-| UP + DN while in AP mode | enable **standalone mode** (no WiFi, buttons only) and restart | Same 0.5 s both-down detection as the practice toggle. To leave standalone mode, use the power-on hold. |
+| UP + DN while in AP mode | enable **standalone mode** (no WiFi, buttons only) and restart | Same both-down detection as the practice toggle. To leave standalone mode, use the power-on hold. |
 
 Heat number can only be set from the web interface / HTTP API.
 

@@ -31,6 +31,9 @@
 #define CONNECT_POLL_MS     300     // how often to check for a WiFi connection (and the both-buttons escape) while connecting
 #define CONNECT_REFRESH_MS  10000   // how often to refresh the ePaper with progress dots while connecting
 
+#define BUTTON_DEBOUNCE_MS  20      // a button reading has to hold this long before it counts (filters contact bounce)
+#define BUTTON_COMBO_MS     250     // after one button goes down, how long to wait for the other before treating it as a single press
+
 #ifdef EPAPER_ENABLE    // Only compile this code if EPAPER_ENABLE is defined (in User_Setup.h, typically part of the TFT_eSPI library 
                         // Except..., the HW used for this display requires the Seeed_GFX library, a fork of the Adafruit_GFX library, which replaces the TFT_eSPI library 
 						// You have to remove the Adafruit_GFX library and replace it with the Seeed_GFX library, since the Seeed library emulates the Adafruit library but adds extra functionality for the ePaper display.
@@ -51,6 +54,16 @@ Preferences prefs;
 String ssidStored = "";
 String passStored = "";
 String standAlone = "";
+
+struct Button {                     // see handleButtons(); declared up here so the IDE's auto-generated prototypes can see it
+    uint8_t         pin;
+    bool            pressed;        // debounced state
+    bool            lastRaw;        // last raw reading
+    unsigned long   changedAt;      // when the raw reading last changed
+};
+
+Button upButton = { UPSWITCH, false, false, 0 };
+Button dnButton = { DNSWITCH, false, false, 0 };
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -915,49 +928,97 @@ void setup()
 
 void loop()
 {
-    unsigned long startMillis;
-
     server.handleClient();
+    handleButtons();
+}
 
-    if (!digitalRead(UPSWITCH) || !digitalRead(DNSWITCH)) {     // if either switch is pressed, wait a bit to see if the other gets pressed - active low. Can be hard to hit both buttons at once
-        startMillis = millis();
 
-        while(millis() < startMillis+500)
-            if (!digitalRead(UPSWITCH) && !digitalRead(DNSWITCH)) {
-                if (!inAPMode)
-                    doPractice();
-                else
-                    setStandAlone();                             // if we're in AP mode and both buttons are pressed, turn on standalone mode - this will force a restart
-                return;
-            }
+//////////////////////////////////////////////////////////////////////////////
+//
+// Button handling.
+//
+// Presses are edge-triggered: one press is one action, and holding a button does not repeat. A single button
+// acts as soon as it is released, or as soon as it has been held for BUTTON_COMBO_MS, whichever comes first -
+// so a quick tap responds immediately instead of waiting out the combo window (and then being missed because
+// the button was already up again). Both buttons down within BUTTON_COMBO_MS of each other is the
+// both-buttons press, and it acts the moment the second one goes down. After any action nothing more happens
+// until both buttons have been released.
+//
+
+// Returns the debounced state of a button (true = pressed, active low). A change in the raw reading has to
+// hold for BUTTON_DEBOUNCE_MS before it counts, which filters contact bounce.
+
+bool readButton(Button &b) {
+    bool raw = (digitalRead(b.pin) == LOW);
+
+    if (raw != b.lastRaw) {
+        b.lastRaw = raw;
+        b.changedAt = millis();
+    }
+    else if (raw != b.pressed && millis() - b.changedAt >= BUTTON_DEBOUNCE_MS) {
+        b.pressed = raw;
+    }
+    return b.pressed;
+}
+
+void handleButtons() {
+    static unsigned long    firstDownAt = 0;            // when the first button went down; 0 = nothing pending
+    static bool             seenUp = false;             // buttons seen down since firstDownAt
+    static bool             seenDn = false;
+    static bool             waitForRelease = false;     // set after an action: ignore the buttons until both are up
+
+    bool up = readButton(upButton);
+    bool dn = readButton(dnButton);
+
+    if (waitForRelease) {
+        if (!up && !dn)
+            waitForRelease = false;
+        return;
     }
 
-    if (inAPMode)
-		return; 											 // if we're in AP mode, we don't want the buttons to do anything except trigger standalone mode, so skip the rest of the loop
+    if (firstDownAt == 0) {                             // nothing pending: has a press started?
+        if (!up && !dn)
+            return;
+        firstDownAt = millis();
+        seenUp = up;
+        seenDn = dn;
+    }
+    else {
+        seenUp |= up;
+        seenDn |= dn;
+    }
 
-    if (digitalRead(UPSWITCH) == LOW) {
+    bool combo    = seenUp && seenDn;
+    bool released = !up && !dn;
+    bool expired  = millis() - firstDownAt >= BUTTON_COMBO_MS;
+
+    if (!combo && !released && !expired)
+        return;                                         // still waiting to see whether this becomes a both-buttons press
+
+    firstDownAt = 0;
+    waitForRelease = true;
+
+    if (combo) {
+        if (inAPMode)
+            setStandAlone();                            // in AP mode both buttons turn on standalone mode - this will force a restart
+        else
+            doPractice();
+    }
+    else if (inAPMode) {
+        // single buttons do nothing in AP mode
+    }
+    else if (seenUp) {
         Serial.println("Up Switch pressed!");
 
         if (++raceCount == 100)
             raceCount = 1;
         doRaceCount();
-        practiceMode = false;
-        return;
     }
-
-    if ((digitalRead(DNSWITCH) == LOW) && (raceCount != 0)) {
+    else if (raceCount != 0) {                          // Down does nothing while the splash screen is showing (race count 0)
         Serial.println("Down Switch pressed!");
 
-        --raceCount;
-        if (raceCount > 99)
+        if (--raceCount == 0)
             raceCount = 99;
-
-        if (raceCount == 0)
-            raceCount = 99;
-
         doRaceCount();
-        practiceMode = false;
-        return;
     }
-
 }
