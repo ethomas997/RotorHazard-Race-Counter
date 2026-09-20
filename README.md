@@ -151,8 +151,8 @@ Arduino IDE / arduino-cli (VisualMicro is more forgiving). Items identified for 
 
 * `/reset` wipes WiFi credentials on a bare `GET` – easy to hit by accident; should be a POST with confirmation.
 * The WiFi connect loop never times out and does a full ePaper refresh every 300 ms while waiting.
-* `handleSettings()` re-registers the `/save` route on every page view; `handleReset()` prints in whatever
-  font was last selected; several unused variables (`WAKEUPPIN`, `justPoweredUp`, `LEDToggle`, `textField`).
+* `handleSettings()` re-registers the `/save` route on every page view; several unused variables
+  (`WAKEUPPIN`, `justPoweredUp`, `LEDToggle`, `textField`).
 * `bg.png` (22 KB) could be embedded as a `PROGMEM` array like the logo, eliminating the SPIFFS upload step.
 * API is browser-oriented: numeric heat only (RotorHazard heats have names), practice is toggle-only, no
   status endpoint. Needed before RotorHazard can drive it.

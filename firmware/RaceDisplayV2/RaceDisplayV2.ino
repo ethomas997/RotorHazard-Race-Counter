@@ -422,6 +422,8 @@ void handleReset() {
     prefs.end();
 
     epaper.fillScreen(TFT_WHITE);
+    epaper.setFreeFont(&FreeSansBold12pt7b);    // last font used was probably the big race-number font
+    epaper.setTextSize(1);
     H = epaper.fontHeight();
     epaper.setCursor(0, H);              // center top
     epaper.print("Old SSID and password deleted\nRestarting in 5 seconds...");
