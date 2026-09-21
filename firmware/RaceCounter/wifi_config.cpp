@@ -114,6 +114,7 @@ void startConfigAP() {
 
     server.on("/", handleRootAP);
     server.on("/save", HTTP_POST, handleSaveAP);
+    server.on("/status", handleStatus);
     server.begin();
 }
 

@@ -18,3 +18,4 @@ using fs::FS;
 extern WebServer server;
 
 void startWebServer();      // register the routes and start the server; call once WiFi is connected
+void handleStatus();        // GET /status - device state as JSON (also registered by the AP-mode server)

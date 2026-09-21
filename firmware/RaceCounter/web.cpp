@@ -14,6 +14,8 @@
 #include "web.h"
 #include "wifi_config.h"
 
+#include <WiFi.h>
+
 #include "bg_png.h"
 
 WebServer server(80);
@@ -373,10 +375,55 @@ static void handleSettings() {
 
 //////////////////////////////////////////////////////////////////////////////
 //
+// GET /status - the device state as JSON, for scripts and for checking what the panel is showing without
+// looking at it. Read-only. Also served in AP mode.
+//
+
+static String jsonString(const String &in) {
+    String out = "\"";
+    for (size_t i = 0; i < in.length(); i++) {
+        char c = in[i];
+        if (c == '"' || c == '\\') { out += '\\'; out += c; }
+        else if (c < 0x20)         { out += ' '; }
+        else                       { out += c; }
+    }
+    return out + "\"";
+}
+
+void handleStatus() {
+    String json;
+    json.reserve(512);
+
+    json += "{\"name\":" + jsonString(PAGE_TITLE) + ",\"version\":\"" FW_VERSION "\"";
+
+    if (standAloneMode)
+        json += ",\"mode\":\"standalone\",\"ssid\":null,\"ip\":null,\"rssi\":null";
+    else if (inAPMode)
+        json += ",\"mode\":\"ap\",\"ssid\":\"RaceCounter-Setup\",\"ip\":" + jsonString(WiFi.softAPIP().toString()) + ",\"rssi\":null";
+    else if (WiFi.status() == WL_CONNECTED)
+        json += ",\"mode\":\"wifi\",\"ssid\":" + jsonString(ssidStored) + ",\"ip\":" + jsonString(WiFi.localIP().toString()) + ",\"rssi\":" + String(WiFi.RSSI());
+    else
+        json += ",\"mode\":\"wifi\",\"ssid\":" + jsonString(ssidStored) + ",\"ip\":null,\"rssi\":null";
+
+    json += ",\"mac\":" + jsonString(stationMacAddress());
+    json += ",\"heat\":" + String(heatCount) + ",\"race\":" + String(raceCount) + ",\"practice\":" + (practiceMode ? "true" : "false");
+    json += ",\"banner\":" + jsonString(displayBanner()) + ",\"screen\":\"" + displayScreenName() + "\"";
+    json += ",\"uptime_s\":" + String(millis() / 1000) + ",\"free_heap\":" + String(ESP.getFreeHeap());
+    json += "}\n";
+
+    server.sendHeader("Cache-Control", "no-store");
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "application/json", json);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+//
 // Registers the web server routes and starts the server. Called once WiFi is connected.
 //
 
 void startWebServer() {
+    server.on("/status", handleStatus);
     server.on("/", handleRoot);
     server.on("/heatInc", handleIncrementHeat);
     server.on("/heatDec", handleDecrementHeat);

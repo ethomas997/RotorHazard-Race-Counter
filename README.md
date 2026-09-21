@@ -134,8 +134,9 @@ lands back on the main page). Scripts should send `allow_redirects=False` or jus
 | `/settings` | WiFi settings page |
 | `/reset` (`POST` only) | **erases the saved WiFi credentials** and reboots into AP mode (the settings-page *Clear* button, behind a confirmation) |
 | `/bg.png` | the web page background image |
+| `/status` | **read-only** JSON: `name`, `version`, `mode` (`wifi` / `ap` / `standalone`), `ssid`, `ip`, `rssi`, `mac`, `heat`, `race`, `practice`, `banner`, `screen` (`splash` / `counter` / `practice` / `info` / `ap_setup` / `status`), `uptime_s`, `free_heap`. Also available in AP mode. |
 
-Out-of-range values are ignored. There is no endpoint to *read* the current state.
+Out-of-range values are ignored.
 
 ## Known issues / roadmap
 
