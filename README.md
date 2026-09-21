@@ -105,6 +105,7 @@ All other libraries (`WiFi`, `WebServer`, `HTTPClient`, `Preferences`) ship with
 |---|---|---|
 | UP | race number +1 (1…99, wraps) | Acts the moment the button is released, or after 0.25 s if it is held. Keep holding and it keeps stepping, one step per panel refresh (every 2–4 s). |
 | DN | race number −1 (1…99, wraps) | Same as UP. Does nothing while the splash screen is showing. |
+| UP or DN on a PRACTICE screen | leave practice: the big-"P" screen goes back to the race count, the "PRACTICE over a round number" screen switches its banner to "RACE #" – the number is not changed either way | |
 | UP + DN together (short), in normal operation | toggle **PRACTICE** mode | The second button must go down within 0.25 s of the first; acts when either is released (before 3 s). |
 | UP + DN **held for 3 s** | show the **information screen**: mode, SSID, IP, web address, signal, MAC, what was being shown, uptime, free memory | Acts at 3 s while both are still down. Any button press on the information screen goes back to the previous screen (splash / race count / practice) without changing anything. |
 | UP + DN held at power-on | erase saved WiFi credentials and standalone flag, restart into AP mode | The pins are read **once**, about 2–3 s after power-on. Hold both before switching on, keep holding until "Old SSID and password deleted…" appears, then release. |

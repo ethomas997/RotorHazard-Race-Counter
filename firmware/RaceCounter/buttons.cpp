@@ -66,9 +66,21 @@ static bool readButton(Button &b) {
     return b.pressed;
 }
 
-static void singlePress(bool isUp) {
+// Acts on a single button. Returns true if the press was consumed by leaving the PRACTICE screen, in which
+// case the race number is left alone (and a held button must not go on to repeat).
+
+static bool singlePress(bool isUp) {
     if (inAPMode)
-        return;                                         // single buttons do nothing in AP mode
+        return false;                                   // single buttons do nothing in AP mode
+
+    if (practiceMode || bannerText == "PRACTICE") {     // on either PRACTICE screen a button just goes back to "RACE #" and the count
+        Serial.println("Switch pressed: leaving practice");
+        if (raceCount == 0)
+            raceCount = 1;
+        bannerText = practiceMode ? "" : "RACE #";      // (the practice-format screen keeps its heat number on the web page, but shows RACE #)
+        doRaceCount();
+        return true;
+    }
 
     if (isUp) {
         Serial.println("Up Switch pressed!");
@@ -84,6 +96,7 @@ static void singlePress(bool isUp) {
             raceCount = 99;
         doRaceCount();
     }
+    return false;
 }
 
 static void shortBothPress() {
@@ -140,10 +153,10 @@ void handleButtons() {
             state = WAIT_RELEASE;
         }
         else if (now - stateSince >= BUTTON_COMBO_MS) { // still held: act now and keep repeating while it stays down
-            singlePress(seenUp);
+            bool leftPractice = singlePress(seenUp);
             repeatUp = seenUp;
             lastRepeat = millis();
-            state = inAPMode ? WAIT_RELEASE : REPEAT;   // (single buttons do nothing in AP mode, so nothing to repeat)
+            state = (inAPMode || leftPractice) ? WAIT_RELEASE : REPEAT;    // (nothing to repeat in AP mode, and leaving practice is a one-off)
         }
         break;
 
