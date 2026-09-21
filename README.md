@@ -181,5 +181,9 @@ Remaining items:
 
 ## Credits
 
-Hardware, housing and firmware by RocketSled. RotorHazard logo © the RotorHazard project.
-Orbitron font by Matt McInerney, SIL Open Font License.
+Hardware, housing and firmware by RocketSled. Orbitron font by Matt McInerney, SIL Open Font License.
+
+## License
+
+[MIT](LICENSE). The RotorHazard name and logo are copyright Michael Niggel/Hazard Creative, LLC and are used
+under the RotorHazard project's own terms (see the note in `LICENSE`); they are not covered by the MIT license.
