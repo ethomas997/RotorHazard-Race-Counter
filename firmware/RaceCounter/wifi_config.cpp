@@ -135,13 +135,22 @@ h3{font-size:18px;margin:4px 0;font-weight:bold;}
 h4{font-size:16px;margin:3px 0;font-weight:bold;}
 button{font-size:20px;height:40px;margin:2px;padding:0 10px;border-radius:6px;border:1px solid #666;background:#e0e0e0;}
 button:active{background:#ccc;}
+.pwWrap{position:relative;display:inline-block;}
+.showPw{position:absolute;right:6px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;color:#666;}
 </style></head><body style='font-family:sans-serif;'>
 <h2>)html" PAGE_TITLE R"html( WiFi Setup</h2>
 <form action='/save' method='POST'>
 SSID:<br><input name='ssid'><br><br>
-Password:<br><input name='pass' type='password'><br><br>
+Password:<br><span class='pwWrap'><input name='pass' id='pw' type='password'><span class='showPw' onclick='togglePw()'>&#128065;&#65039;</span></span><br><br>
 <button type='submit'>Save & Reboot</button>
-</form><br>Push both buttons to set standalone mode</body></html>
+</form><br>Push both buttons to set standalone mode
+<script>
+function togglePw(){
+  var p=document.getElementById('pw');
+  p.type = (p.type==='password') ? 'text' : 'password';
+}
+</script>
+</body></html>
 )html";
 
 static void handleRootAP() {
