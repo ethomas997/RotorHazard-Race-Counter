@@ -141,8 +141,13 @@ The counter then connects to the server as a Socket.IO client, the same way a br
   format (any format whose name contains "practice", such as the stock "Open Practice") shows "PRACTICE" as
   the banner with the round number below it. The panel only refreshes when something actually changed.
 
-The buttons and web page keep working as manual overrides; the next event from the timer wins. The
-connection state is shown on the information screen (hold both buttons) and in `/status` (`rh` object).
+The buttons and web page keep working as manual overrides; the next event from the timer wins.
+
+The link is supervised: the timer broadcasts a heartbeat every 0.5 s, and if nothing at all arrives for 10 s
+the connection is treated as **lost** – a warning triangle appears in the top-right corner of the panel,
+the main web page shows *Connection to RotorHazard server at host:port: Lost* in red (*Active* otherwise),
+and the counter forces a reconnect. It clears itself as soon as traffic resumes. The state is also on the
+information screen (hold both buttons) and in `/status` (`rh.state`: `active` / `lost`).
 The results broadcast the timer sends after each saved race is bigger than the WebSocket library accepts,
 so the connection drops and reconnects a few seconds later at that point; the state is re-requested on
 every connect, so nothing is missed.

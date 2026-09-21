@@ -52,6 +52,9 @@ button:active{background:#ccc;}
 .bottomButtons{display:flex;gap:20px;justify-content:center;margin-top:10px;}
 .settingsIcon{position:fixed;top:10px;right:10px;font-size:32px;cursor:pointer;text-decoration:none;color:#333;}
 .showing{text-align:center;font-size:18px;margin:0 0 10px 0;}
+.rhlink{text-align:center;font-size:15px;margin:16px 0 0 0;color:#444;}
+.active{color:#080;font-weight:bold;}
+.lost{color:#c00;font-weight:bold;}
 .version{text-align:center;font-size:12px;color:#888;margin-top:24px;}
 .refreshBut{width:120px;font-weight:600;background:#f0f0f0;border:2px solid #666;}
 .bgImg{position:fixed;top:3%;left:3%;width:94%;height:94%;object-fit:contain;opacity:0.20;z-index:-1;}
@@ -87,6 +90,9 @@ static const char MAIN_PAGE_4[] PROGMEM = R"html(' onclick="location.href='/prac
 <button class='resetBut' onclick="location.href='/splash'">Reset</button>
 <button class='refreshBut' onclick="location.href='/'">Refresh</button>
 </div><br>
+<p class='rhlink'>)html";
+//  ... the RotorHazard connection line ...
+static const char MAIN_PAGE_5[] PROGMEM = R"html(</p>
 <p class='version'>Firmware v)html" FW_VERSION R"html(</p>
 </div></body></html>
 )html";
@@ -222,6 +228,12 @@ static void handleRoot() {
     server.sendContent_P(MAIN_PAGE_3);
     server.sendContent(practiceMode ? "practiceOn" : "practiceOff");
     server.sendContent_P(MAIN_PAGE_4);
+    if (rhConfigured())
+        server.sendContent("Connection to RotorHazard server at <b>" + htmlEscape(rhServerAddress()) + "</b>:&nbsp; " +
+                           (rhLinkLost() ? "<span class='lost'>Lost</span>" : "<span class='active'>Active</span>"));
+    else
+        server.sendContent("RotorHazard server: not configured");
+    server.sendContent_P(MAIN_PAGE_5);
     endPage();
 }
 

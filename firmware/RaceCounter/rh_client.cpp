@@ -28,7 +28,10 @@
 #include "rh_client.h"
 
 #define RH_DEFAULT_PORT         5000
-#define RH_RECONNECT_MS         5000    // how long the Socket.IO client waits before reconnecting after a drop
+#define RH_RECONNECT_MS         2000    // how long the Socket.IO client waits before reconnecting after a drop
+#define RH_LINK_TIMEOUT_MS      10000   // no traffic from the server for this long = the link is lost. The server sends a heartbeat
+                                        // event every 0.5 s, so this is generous - it has to ride out the drop-and-reconnect the
+                                        // oversized results broadcast causes after every race save without flagging it
 #define RH_SETTLE_MS            250     // events arrive in bursts (race_status + current_heat); wait this long after the last one before redrawing
 #define RH_HTTP_TIMEOUT_MS      3000
 
@@ -51,6 +54,8 @@ static int              roundNum = -1;
 static int              raceStatus = RH_RACE_READY;    // from the last race_status event
 static bool             pending = false;        // state received, not yet applied to the display
 static unsigned long    lastEventAt = 0;
+static unsigned long    lastRxAt = 0;           // when anything at all last arrived from the server (heartbeats included)
+static bool             linkLost = false;
 
 static int              formatId = -1;          // race format in effect (from race_status)
 
@@ -231,6 +236,7 @@ static void handleEvent(uint8_t *payload, size_t length) {
 static void onSocketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t length) {
     switch (type) {
         case sIOtype_CONNECT:                   // the WebSocket is up
+            lastRxAt = millis();
             Serial.println("[RH] connected");
             sio.send(sIOtype_CONNECT, "/");     // join the default namespace (Socket.IO v3+ doesn't do this automatically)
             sio.sendEVENT("[\"load_data\",{\"load_types\":[\"race_status\",\"current_heat\"]}]");
@@ -244,6 +250,7 @@ static void onSocketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t
             break;
 
         case sIOtype_EVENT:
+            lastRxAt = millis();                // every event counts as a sign of life, the 0.5 s heartbeat included
             handleEvent(payload, length);
             break;
 
@@ -292,6 +299,8 @@ void rhBegin() {
     sio.onEvent(onSocketIOEvent);
     sio.setReconnectInterval(RH_RECONNECT_MS);
     sio.begin(host, port, "/socket.io/?EIO=4");
+    lastRxAt = millis();
+    linkLost = false;
     enabled = true;
 }
 
@@ -305,10 +314,20 @@ void rhLoop() {
         pending = false;
         applyState();
     }
+
+    bool lostNow = millis() - lastRxAt > RH_LINK_TIMEOUT_MS;
+    if (lostNow != linkLost) {
+        linkLost = lostNow;
+        Serial.println(linkLost ? "[RH] link lost (no traffic from the server)" : "[RH] link active");
+        if (linkLost && connected)
+            sio.disconnect();                   // the socket may be half-open: drop it so the library reconnects
+        updateDisplay();                        // the panel shows a marker while the link is lost
+    }
 }
 
 bool rhConfigured() { return rhServer.length() > 0; }
 bool rhConnected()  { return enabled && connected; }
+bool rhLinkLost()   { return enabled && linkLost; }
 int  rhHeatId()     { return heatId; }
 int  rhRound()      { return roundNum; }
 
@@ -321,5 +340,9 @@ String rhStatusText() {
         return "not configured";
     if (!enabled)
         return "waiting for WiFi";
-    return connected ? "connected" : "connecting";
+    return linkLost ? "lost" : "active";
+}
+
+String rhServerAddress() {
+    return host + ":" + String(port);
 }

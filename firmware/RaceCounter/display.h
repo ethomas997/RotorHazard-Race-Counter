@@ -29,8 +29,9 @@ struct DisplayState {
     bool    splash = true;
     String  banner;
     String  big;
+    bool    linkLost = false;   // show the "connection to the timer lost" marker
 
-    bool operator==(const DisplayState &o) const { return splash == o.splash && banner == o.banner && big == o.big; }
+    bool operator==(const DisplayState &o) const { return splash == o.splash && banner == o.banner && big == o.big && linkLost == o.linkLost; }
     bool operator!=(const DisplayState &o) const { return !(*this == o); }
 };
 

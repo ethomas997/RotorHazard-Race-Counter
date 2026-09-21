@@ -41,6 +41,8 @@ static DisplayState rendered;                   // what the panel shows while cu
 static DisplayState deriveState() {
     DisplayState s;
 
+    s.linkLost = rhLinkLost();
+
     if (practiceMode) {
         s.splash = false;
         s.banner = "PRACTICE";
@@ -79,6 +81,21 @@ static void selectBannerFont(const String &text) {
     epaper.setTextSize(1);                      // (a 40-character banner still won't fit; it just gets clipped)
 }
 
+// The "connection to the timer lost" marker: a warning triangle with an exclamation mark, top right.
+
+static void drawLinkLostMarker() {
+    const int   size = 44, margin = 6;
+    int         x1 = DISPLAYWIDTH - margin - size, x2 = DISPLAYWIDTH - margin, xm = (x1 + x2) / 2;
+    int         y1 = margin, y2 = margin + size;
+
+    epaper.fillTriangle(xm, y1, x1, y2, x2, y2, TFT_BLACK);
+    epaper.fillTriangle(xm, y1 + 9, x1 + 7, y2 - 4, x2 - 7, y2 - 4, TFT_WHITE);
+    epaper.setFreeFont(&FreeSansBold12pt7b);
+    epaper.setTextSize(1);
+    epaper.setCursor(xm - 3, y2 - 7);
+    epaper.print("!");
+}
+
 static void render(const DisplayState &s, bool force = false) {
     uint16_t    W, H;
 
@@ -103,6 +120,9 @@ static void render(const DisplayState &s, bool force = false) {
         epaper.setCursor((DISPLAYWIDTH - W) / 2 + CENTERINGOFFSET, DISPLAYHEIGHT - 20); // center bottom
         epaper.print(s.big);
     }
+
+    if (s.linkLost)
+        drawLinkLostMarker();
 
     epaper.update();
     rendered = s;
