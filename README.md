@@ -8,6 +8,8 @@ housing with two push-buttons (DN / UP). It can be run standalone from the butto
 small built-in web page and HTTP API – or, given the address of a [RotorHazard](https://github.com/RotorHazard/RotorHazard)
 timer, it follows the timer's current heat and round by itself.
 
+![Race Counter on the track](pics/race-counter-on-track.png)
+
 ## Repository layout
 
 | Path | Contents |
@@ -18,6 +20,7 @@ timer, it follows the timer's current heat and round by itself.
 | `firmware/RaceCounter/driver.h` | Seeed_GFX hardware selection (board + panel). **Required** – see Building |
 | `firmware/libraries/` | Git submodules, pinned: `Seeed_GFX` (display), `WebSockets` (Socket.IO client), `ArduinoJson` |
 | `docs/parts-list.md` | Bill of materials |
+| `pics/` | Photos of the built unit and screenshots of the web pages |
 | `assets/` | Source font (Orbitron Bold, OFL) and logo images used to generate the `.h` bitmaps |
 | `tools/bin2header.py` | Turns a binary file into a `PROGMEM` C array header |
 
@@ -31,6 +34,10 @@ timer, it follows the timer's current heat and round by itself.
 * 3D-printed housing (STLs not yet in this repo)
 
 Full list with links: [docs/parts-list.md](docs/parts-list.md).
+
+| Front | Inside |
+|---|---|
+| ![Front](pics/race-counter-front.jpg) | ![Inside, back plate off](pics/race-counter-back.jpg) |
 
 ## Building the firmware
 
@@ -122,6 +129,10 @@ version at the bottom. The 🛠 icon
 top-right opens the settings page where the SSID/password can be changed (*Update*) or erased (*Clear*);
 both reboot the device. The settings page also has the **RotorHazard** server field (below) and shows the MAC
 address and firmware version (`FW_VERSION` in `RaceCounter.h`, also printed in the serial banner at boot).
+
+| Main page | Settings page |
+|---|---|
+| ![Main page](pics/race-counter-main-page.png) | ![Settings page](pics/race-counter-settings-page.png) |
 
 ### Following a RotorHazard timer
 
