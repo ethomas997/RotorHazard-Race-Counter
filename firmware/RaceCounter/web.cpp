@@ -52,6 +52,7 @@ button:active{background:#ccc;}
 .bottomButtons{display:flex;gap:20px;justify-content:center;margin-top:10px;}
 .settingsIcon{position:fixed;top:10px;right:10px;font-size:32px;cursor:pointer;text-decoration:none;color:#333;}
 .showing{text-align:center;font-size:18px;margin:0 0 10px 0;}
+.version{text-align:center;font-size:12px;color:#888;margin-top:24px;}
 .refreshBut{width:120px;font-weight:600;background:#f0f0f0;border:2px solid #666;}
 .bgImg{position:fixed;top:3%;left:3%;width:94%;height:94%;object-fit:contain;opacity:0.20;z-index:-1;}
 </style></head>
@@ -86,6 +87,7 @@ static const char MAIN_PAGE_4[] PROGMEM = R"html(' onclick="location.href='/prac
 <button class='resetBut' onclick="location.href='/splash'">Reset</button>
 <button class='refreshBut' onclick="location.href='/'">Refresh</button>
 </div><br>
+<p class='version'>Firmware v)html" FW_VERSION R"html(</p>
 </div></body></html>
 )html";
 
@@ -98,7 +100,9 @@ h2{font-size:20px;margin:4px 0;font-weight:bold;}
 h3{font-size:18px;margin:4px 0;font-weight:bold;}
 h4{font-size:14px;margin:3px 0;font-weight:normal;color:#FF0000;font-style:italic;}
 h5{font-size:14px;margin:3px 0;font-weight:bold;}
-.version{font-size:12px;color:#888;margin-top:24px;}
+.mac{font-size:18px;margin-top:24px;}
+.mac b{font-family:monospace;font-size:20px;letter-spacing:1px;}
+.version{font-size:12px;color:#888;margin-top:6px;}
 button{font-size:20px;height:40px;margin:2px;padding:0 10px;border-radius:6px;border:1px solid #666;background:#e0e0e0;}
 button:active{background:#ccc;}
 .buttonRow{display:flex;justify-content:center;gap:12px;margin-top:10px;}
@@ -135,6 +139,9 @@ static const char SETTINGS_PAGE_4[] PROGMEM = R"html('></div>
 </div>
 <h4><br>Pressing either button will initiate a reboot<br></h4><h5>Use browser [BACK] to quit without saving</h5>
 </form>
+<p class='mac'>MAC address: <b>)html";
+//  ... the station MAC address ...
+static const char SETTINGS_PAGE_5[] PROGMEM = R"html(</b></p>
 <p class='version'>Firmware v)html" FW_VERSION R"html(</p>
 <form id='clearForm' method='POST' action='/reset' onsubmit="return confirm('Erase the saved WiFi SSID and password and reboot into setup mode?')"></form>
 </div>
@@ -391,6 +398,8 @@ static void handleSettings() {
     server.sendContent_P(SETTINGS_PAGE_3);
     sendValue(htmlEscape(rhServer));
     server.sendContent_P(SETTINGS_PAGE_4);
+    server.sendContent(stationMacAddress());
+    server.sendContent_P(SETTINGS_PAGE_5);
     endPage();
 }
 
