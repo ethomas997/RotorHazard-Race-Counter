@@ -167,8 +167,7 @@ void handleSaveAP() {
         prefs.end();
 
         if (server.hasArg("rh")) {              // (the settings page has this field; the AP setup page doesn't)
-            String rh = server.arg("rh");
-            rh.trim();
+            String rh = rhNormalizeServer(server.arg("rh"));
             prefs.begin("rh", false);
             prefs.putString("server", rh);
             prefs.end();

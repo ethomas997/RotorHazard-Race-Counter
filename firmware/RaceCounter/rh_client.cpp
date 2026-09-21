@@ -258,8 +258,20 @@ static void onSocketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t
 // Public interface.
 //
 
+String rhNormalizeServer(String s) {
+    s.trim();
+    if (s.startsWith("http://"))
+        s = s.substring(7);
+    else if (s.startsWith("https://"))
+        s = s.substring(8);
+    while (s.endsWith("/"))
+        s.remove(s.length() - 1);
+    return s;
+}
+
 void rhBegin() {
     enabled = false;
+    rhServer = rhNormalizeServer(rhServer);     // (in case the stored value predates the normalising)
     if (rhServer.length() == 0)
         return;
 

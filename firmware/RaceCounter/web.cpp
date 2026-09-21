@@ -96,9 +96,9 @@ h5{font-size:14px;margin:3px 0;font-weight:bold;}
 button{font-size:20px;height:40px;margin:2px;padding:0 10px;border-radius:6px;border:1px solid #666;background:#e0e0e0;}
 button:active{background:#ccc;}
 .buttonRow{display:flex;justify-content:center;gap:12px;margin-top:10px;}
-.formRow{display:grid;grid-template-columns:110px 1fr;align-items:center;margin-bottom:14px;}
+.formRow{display:grid;grid-template-columns:135px 1fr;align-items:center;margin-bottom:14px;}
 .formRow label{font-size:18px;font-weight:600;}
-.pwRow{display:grid;grid-template-columns:110px 1fr;align-items:center;margin-bottom:14px;}
+.pwRow{display:grid;grid-template-columns:135px 1fr;align-items:center;margin-bottom:14px;}
 .pwRow label{font-size:18px;font-weight:600;}
 .pwWrap{position:relative;max-width:260px;width:100%;}
 .inputBox{font-family:sans-serif;font-size:20px;width:100%;max-width:260px;padding:4px;border:1px solid #ccc;border-radius:4px;}
@@ -119,7 +119,7 @@ static const char SETTINGS_PAGE_2[] PROGMEM = R"html('></div>
 static const char SETTINGS_PAGE_3[] PROGMEM = R"html('>
 <span class='showPw' onclick='togglePw()'>&#128065;&#65039;</span>
 </div></div>
-<div class='formRow'><label>RotorHazard:</label><input class='inputBox' name='rh' placeholder='host or host:port' value=')html";
+<div class='formRow'><label>RotorHazard:&nbsp;</label><input class='inputBox' name='rh' placeholder='host or host:port' value=')html";
 //  ... the RotorHazard server ...
 static const char SETTINGS_PAGE_4[] PROGMEM = R"html('></div>
 <h5>RotorHazard server to follow (blank = none)</h5>

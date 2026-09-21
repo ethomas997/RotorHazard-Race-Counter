@@ -13,6 +13,8 @@
 
 extern String rhServer;             // the RotorHazard server, "host" or "host:port" (port defaults to 5000); "" = not configured
 
+String rhNormalizeServer(String s);  // tidy a server address typed by a user: trim, drop a leading http:// or https:// and a trailing /
+
 void   rhBegin();                   // start following the server; call once WiFi is connected (does nothing if not configured)
 void   rhLoop();                    // call from loop()
 
