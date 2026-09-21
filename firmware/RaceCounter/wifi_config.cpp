@@ -124,27 +124,26 @@ void startConfigAP() {
 // It generates the HTML for the page that allows you to enter a WiFi SSID and password, and submit them to be saved in preferences.
 //
 
+static const char AP_SETUP_PAGE[] PROGMEM = R"html(<!DOCTYPE html><html><head><title>)html" PAGE_TITLE R"html(</title>
+<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
+<style>
+h1{font-size:26px;margin:8px 0 12px 0;font-weight:bold;}
+h2{font-size:20px;margin:4px 0;font-weight:bold;}
+h3{font-size:18px;margin:4px 0;font-weight:bold;}
+h4{font-size:16px;margin:3px 0;font-weight:bold;}
+button{font-size:20px;height:40px;margin:2px;padding:0 10px;border-radius:6px;border:1px solid #666;background:#e0e0e0;}
+button:active{background:#ccc;}
+</style></head><body style='font-family:sans-serif;'>
+<h2>)html" PAGE_TITLE R"html( WiFi Setup</h2>
+<form action='/save' method='POST'>
+SSID:<br><input name='ssid'><br><br>
+Password:<br><input name='pass' type='password'><br><br>
+<button type='submit'>Save & Reboot</button>
+</form><br>Push both buttons to set standalone mode</body></html>
+)html";
+
 static void handleRootAP() {
-    String page = "<!DOCTYPE html><html><head><title>" PAGE_TITLE "</title>";
-    page += "<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>";
-    page += "<style>";
-    page += "h1{font-size:26px;margin:8px 0 12px 0;font-weight:bold;}";
-    page += "h2{font-size:20px;margin:4px 0;font-weight:bold;}";
-    page += "h3{font-size:18px;margin:4px 0;font-weight:bold;}";
-    page += "h4{font-size:16px;margin:3px 0;font-weight:bold;}";
-
-    page += "button{font-size:20px;height:40px;margin:2px;padding:0 10px;border-radius:6px;border:1px solid #666;background:#e0e0e0;}";
-    page += "button:active{background:#ccc;}";
-
-    page += "</style></head><body style='font-family:sans-serif;'>";
-
-    page += "<h2>" PAGE_TITLE " WiFi Setup</h2>";
-    page += "<form action='/save' method='POST'>";
-    page += "SSID:<br><input name='ssid'><br><br>";
-    page += "Password:<br><input name='pass' type='password'><br><br>";
-    page += "<button type='submit'>Save & Reboot</button>";
-    page += "</form><br>Push both buttons to set standalone mode</body></html>";
-    server.send(200, "text/html", page);
+    server.send_P(200, "text/html", AP_SETUP_PAGE);
 }
 
 
