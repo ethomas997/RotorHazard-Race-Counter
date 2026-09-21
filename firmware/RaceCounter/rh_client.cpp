@@ -52,20 +52,25 @@ static int              raceStatus = RH_RACE_READY;    // from the last race_sta
 static bool             pending = false;        // state received, not yet applied to the display
 static unsigned long    lastEventAt = 0;
 
+static int              formatId = -1;          // race format in effect (from race_status)
+
 static int              nameHeatId = -1;        // the heat whose name is cached
 static String           heatName;
+static int              nameFormatId = -1;      // the race format whose name is cached
+static String           formatName;
+static bool             formatIsPractice = false;   // the cached format's name contains "practice"
 
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// Fetches the display name of a heat from the JSON API: GET /api/heat/<id> -> {"heat":{"setup":{"displayname":...},...}}.
-// The response also carries the heat's full leaderboard, so it's parsed with a filter that keeps only the name.
+// GETs a JSON API endpoint and parses it through a filter (the responses can be large - a heat's answer
+// includes its whole leaderboard - so only the wanted fields are kept).
 //
 
-static bool fetchHeatName(int id, String &name) {
+static bool getJson(const String &path, JsonDocument &filter, JsonDocument &doc) {
     WiFiClient  client;
     HTTPClient  http;
-    String      url = "http://" + host + ":" + String(port) + "/api/heat/" + String(id);
+    String      url = "http://" + host + ":" + String(port) + path;
 
     http.setTimeout(RH_HTTP_TIMEOUT_MS);
     if (!http.begin(client, url))
@@ -78,30 +83,63 @@ static bool fetchHeatName(int id, String &name) {
         return false;
     }
 
-    JsonDocument filter;
-    filter["heat"]["setup"]["displayname"] = true;
-
-    JsonDocument doc;
     DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
     http.end();
 
     if (err) {
-        Serial.printf("[RH] heat %d: bad JSON (%s)\n", id, err.c_str());
+        Serial.printf("[RH] GET %s: bad JSON (%s)\n", url.c_str(), err.c_str());
         return false;
     }
+    return true;
+}
+
+// The display name of a heat: GET /api/heat/<id> -> {"heat":{"setup":{"displayname":...},...}}
+
+static bool fetchHeatName(int id, String &name) {
+    JsonDocument filter, doc;
+    filter["heat"]["setup"]["displayname"] = true;
+
+    if (!getJson("/api/heat/" + String(id), filter, doc))
+        return false;
 
     const char *n = doc["heat"]["setup"]["displayname"];
     if (!n || !*n)
         return false;
-
     name = n;
     return true;
+}
+
+// The name of a race format: GET /api/format/<id> -> {"format":{"name":...,...}}
+
+static bool fetchFormatName(int id, String &name) {
+    JsonDocument filter, doc;
+    filter["format"]["name"] = true;
+
+    if (!getJson("/api/format/" + String(id), filter, doc))
+        return false;
+
+    const char *n = doc["format"]["name"];
+    if (!n || !*n)
+        return false;
+    name = n;
+    return true;
+}
+
+// True if the text contains "practice" in any letter case.
+
+static bool mentionsPractice(const String &text) {
+    String lower = text;
+    lower.toLowerCase();
+    return lower.indexOf("practice") >= 0;
 }
 
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// Puts the last received state on the panel. Heat id 0 is RotorHazard's "no heat / practice" state.
+// Puts the last received state on the panel. Two kinds of practice on the timer:
+//   * heat id 0 - "Practice Mode" selected instead of a heat: the PRACTICE screen with the big "P";
+//   * a real heat run with a practice race format (any format whose name contains "practice", e.g. the
+//     stock "Open Practice"): "PRACTICE" as the banner, but the round number below it as usual.
 //
 
 static void applyState() {
@@ -115,8 +153,14 @@ static void applyState() {
                 heatName = "Heat " + String(heatId);
             nameHeatId = heatId;
         }
+        if (formatId != nameFormatId) {         // new race format: look up its name (once)
+            if (!fetchFormatName(formatId, formatName))
+                formatName = "";
+            formatIsPractice = mentionsPractice(formatName);
+            nameFormatId = formatId;
+        }
         practiceMode = false;
-        bannerText   = heatName;
+        bannerText   = formatIsPractice ? "PRACTICE" : heatName;
         heatCount    = heatId > 99 ? 99 : heatId;
         int shown = roundNum;
         if (shown >= 1 && raceStatus == RH_RACE_DONE)  // race stopped but not saved yet: show the round that comes next
@@ -145,6 +189,7 @@ static void handleEvent(uint8_t *payload, size_t length) {
     filter[1]["current_heat"] = true;
     filter[1]["next_round"]   = true;
     filter[1]["race_status"]  = true;
+    filter[1]["race_format_id"] = true;
 
     JsonDocument doc;
     if (deserializeJson(doc, payload, length, DeserializationOption::Filter(filter)))
@@ -154,22 +199,22 @@ static void handleEvent(uint8_t *payload, size_t length) {
     if (!name)
         return;
 
-    int id;
+    // The heat id is null (newer servers) or 0 (older ones) when the timer is in Practice Mode rather than on
+    // a heat; either way that's heat 0 here.
+    JsonVariantConst heat;
     if (!strcmp(name, "race_status")) {
-        id = doc[1]["race_heat_id"] | -1;
+        heat       = doc[1]["race_heat_id"];
         raceStatus = doc[1]["race_status"] | RH_RACE_READY;
+        formatId   = doc[1]["race_format_id"] | -1;
     }
     else if (!strcmp(name, "current_heat")) {
-        id = doc[1]["current_heat"] | -1;
+        heat       = doc[1]["current_heat"];
         raceStatus = RH_RACE_READY;             // a heat change means the previous race was saved or discarded
     }
     else
         return;                                 // heartbeat, leaderboard, ... - not ours
 
-    if (id < 0)
-        return;
-
-    heatId      = id;
+    heatId      = heat.isNull() ? 0 : heat.as<int>();
     roundNum    = doc[1]["next_round"] | -1;    // null while in practice mode
     pending     = true;
     lastEventAt = millis();

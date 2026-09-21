@@ -134,7 +134,9 @@ The counter then connects to the server as a Socket.IO client, the same way a br
   looks the heat's display name up once via `GET /api/heat/<id>`;
 * shows the heat name as the banner and `next_round` as the big number – or `next_round + 1` once a race has
   been stopped but not yet saved, so the next race is announced right away. Heat 0 on the timer (no heat
-  selected) shows the PRACTICE screen. The panel only refreshes when something actually changed.
+  selected, "Practice Mode") shows the PRACTICE screen with the big "P"; a real heat run with a practice race
+  format (any format whose name contains "practice", such as the stock "Open Practice") shows "PRACTICE" as
+  the banner with the round number below it. The panel only refreshes when something actually changed.
 
 The buttons and web page keep working as manual overrides; the next event from the timer wins. The
 connection state is shown on the information screen (hold both buttons) and in `/status` (`rh` object).
