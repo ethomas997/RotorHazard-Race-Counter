@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 //
-// Display module: everything that draws on the ePaper panel - the race count / heat banner, the PRACTICE
-// screen, the RotorHazard splash screen, the text status screens and the information screen.
+// Display module: everything that draws on the ePaper panel - the counter screens (splash, heat banner +
+// race number, PRACTICE), the text status screens and the information screen.
 //
 //////////////////////////////////////////////////////////////////////////////
 
@@ -21,127 +21,127 @@ EPaper epaper;
 
 enum Screen {
     SCREEN_STATUS,          // a text screen drawn during startup (connecting, standalone notice, ...)
-    SCREEN_SPLASH,
-    SCREEN_RACE,
-    SCREEN_PRACTICE,
+    SCREEN_COUNTER,         // the rendered DisplayState: splash, race number or practice
     SCREEN_AP_SETUP,
     SCREEN_INFO
 };
 
-static Screen currentScreen  = SCREEN_STATUS;
-static Screen previousScreen = SCREEN_STATUS;
+static Screen       currentScreen  = SCREEN_STATUS;
+static Screen       previousScreen = SCREEN_STATUS;
+static DisplayState rendered;                   // what the panel shows while currentScreen == SCREEN_COUNTER
 
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// Handler for the Practice button. Toggles practice mode on and off. In practice mode, the display shows "PRACTICE" at the top and "P" at the bottom.
+// The counter screen. deriveState() turns the race state into what should be on the panel; render() draws
+// it, unless it is already there. All the counter-screen entry points below go through these two.
 //
+
+static DisplayState deriveState() {
+    DisplayState s;
+
+    if (practiceMode) {
+        s.splash = false;
+        s.banner = "PRACTICE";
+        s.big    = "P";
+    }
+    else if (raceCount == 0) {                  // nothing to count yet: the RotorHazard splash screen
+        s.splash = true;
+    }
+    else {
+        s.splash = false;
+        if (bannerText.length())
+            s.banner = bannerText;
+        else if (heatCount)
+            s.banner = "Heat " + String(heatCount);
+        else
+            s.banner = "RACE #";
+        s.big = String(raceCount);
+    }
+    return s;
+}
+
+// Selects the banner font: Orbitron 50pt if the text fits the panel width, otherwise a smaller font so a
+// long banner (a RotorHazard heat name, say) still fits on one line.
+
+static void selectBannerFont(const String &text) {
+    epaper.setFreeFont(&BANNERFONT);
+    epaper.setTextSize(BANNERFONTSIZE);
+    if (epaper.textWidth(text.c_str()) <= DISPLAYWIDTH - 10)
+        return;
+
+    epaper.setFreeFont(&FreeSansBold24pt7b);
+    epaper.setTextSize(2);
+    if (epaper.textWidth(text.c_str()) <= DISPLAYWIDTH - 10)
+        return;
+
+    epaper.setTextSize(1);                      // (a 40-character banner still won't fit; it just gets clipped)
+}
+
+static void render(const DisplayState &s, bool force = false) {
+    uint16_t    W, H;
+
+    if (!force && currentScreen == SCREEN_COUNTER && s == rendered)
+        return;                                 // already showing exactly this
+
+    epaper.fillScreen(TFT_WHITE);
+
+    if (s.splash) {
+        epaper.drawBitmap((DISPLAYWIDTH - LOGOWIDTH) / 2, (DISPLAYHEIGHT - LOGOHEIGHT) / 2, RotorHazardLogo, LOGOWIDTH, LOGOHEIGHT, TFT_WHITE, TFT_BLACK);
+    }
+    else {
+        selectBannerFont(s.banner);
+        H = epaper.fontHeight();
+        W = epaper.textWidth(s.banner.c_str());
+        epaper.setCursor((DISPLAYWIDTH - W) / 2, H);                            // center top
+        epaper.print(s.banner);
+
+        epaper.setFreeFont(&STATEFONT);
+        epaper.setTextSize(STATEFONTSIZE);
+        W = epaper.textWidth(s.big.c_str());
+        epaper.setCursor((DISPLAYWIDTH - W) / 2 + CENTERINGOFFSET, DISPLAYHEIGHT - 20); // center bottom
+        epaper.print(s.big);
+    }
+
+    epaper.update();
+    rendered = s;
+    currentScreen = SCREEN_COUNTER;
+}
+
+void updateDisplay() {
+    render(deriveState());
+}
+
+// Leave practice mode (if in it) and show the heat / race number.
+
+void doRaceCount() {
+    practiceMode = false;
+    updateDisplay();
+}
+
+// Toggle practice mode. Leaving it with nothing counted yet starts at race 1 rather than going back to the splash.
 
 void doPractice() {
     practiceMode = !practiceMode;
 
-    if (practiceMode == false ) {
-        if (raceCount == 0)
-            raceCount = 1;
-        doRaceCount();
-        return;
-    }
+    if (!practiceMode && raceCount == 0)
+        raceCount = 1;
 
-    drawPracticeScreen();
+    updateDisplay();
 }
 
-void drawPracticeScreen() {
-    uint16_t    W, H;
-
-    char    charBuff[128];
-
-    epaper.fillScreen(TFT_WHITE);
-    epaper.setFreeFont(&BANNERFONT);
-    epaper.setTextSize(BANNERFONTSIZE);
-    H = epaper.fontHeight();
-
-    sprintf(charBuff, "PRACTICE");
-    W = epaper.textWidth(charBuff);
-
-    epaper.setCursor((DISPLAYWIDTH - W) / 2, H);              // center top
-    epaper.print(charBuff);
-
-    epaper.setFreeFont(&STATEFONT);
-    epaper.setTextSize(STATEFONTSIZE);
-
-    W = epaper.textWidth("P");
-    H = epaper.fontHeight();
-
-    epaper.setCursor((DISPLAYWIDTH - W) / 2, DISPLAYHEIGHT - 20);        // center bottom
-    epaper.printf("P");
-
-    epaper.update();
-    currentScreen = SCREEN_PRACTICE;
+String displayBanner() {
+    DisplayState s = deriveState();
+    return s.splash ? String("") : s.banner;
 }
 
-
-//////////////////////////////////////////////////////////////////////////////
-//
-// handler for displaying the race count.
-//
-
-
-void    doRaceCount() {
-    uint16_t    W, H;
-
-    char        charBuff[128];
-
-    practiceMode = false;
-
-    epaper.fillScreen(TFT_WHITE);
-    epaper.setFreeFont(&BANNERFONT);
-    epaper.setTextSize(BANNERFONTSIZE);
-    H = epaper.fontHeight();
-
-    if (heatCount == 0) {
-        epaper.setFreeFont(&BANNERFONT);
-        epaper.setTextSize(BANNERFONTSIZE);
-        H = epaper.fontHeight();
-
-        sprintf(charBuff, "RACE #");
+const char *displayScreenName() {
+    switch (currentScreen) {
+        case SCREEN_COUNTER:    return rendered.splash ? "splash" : (practiceMode ? "practice" : "counter");
+        case SCREEN_AP_SETUP:   return "ap_setup";
+        case SCREEN_INFO:       return "info";
+        default:                return "status";
     }
-    else {
-        epaper.setFreeFont(&HEATFONT);
-        epaper.setTextSize(HEATFONTSIZE);
-        H = epaper.fontHeight();
-
-        sprintf(charBuff, "Heat %d", heatCount);
-    }
-
-    W = epaper.textWidth(charBuff);
-    epaper.setCursor((DISPLAYWIDTH - W) / 2, H);              // center top
-    epaper.print(charBuff);
-
-    epaper.setFreeFont(&STATEFONT);
-    epaper.setTextSize(STATEFONTSIZE);
-
-    sprintf(charBuff, "%d", raceCount);
-    W = epaper.textWidth(charBuff);
-    H = epaper.fontHeight();
-
-    epaper.setCursor((DISPLAYWIDTH - W) / 2 + CENTERINGOFFSET, DISPLAYHEIGHT - 20);        // center bottom
-    epaper.printf("%s", charBuff);
-
-    epaper.update();
-    currentScreen = SCREEN_RACE;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-//
-// handler for displaying the RotorHazard spalsh screen
-//
-
-void doWelcomeScreen() {
-    epaper.fillScreen(TFT_WHITE);
-    epaper.drawBitmap((DISPLAYWIDTH - LOGOWIDTH) / 2, (DISPLAYHEIGHT - LOGOHEIGHT) / 2, RotorHazardLogo, LOGOWIDTH, LOGOHEIGHT, TFT_WHITE, TFT_BLACK);
-    epaper.update();
-    currentScreen = SCREEN_SPLASH;
 }
 
 
@@ -249,11 +249,8 @@ bool infoScreenShowing() {
 }
 
 void restorePreviousScreen() {
-    switch (previousScreen) {
-        case SCREEN_RACE:       doRaceCount();          break;
-        case SCREEN_PRACTICE:   drawPracticeScreen();   break;
-        case SCREEN_AP_SETUP:   drawApSetupScreen();    break;
-        case SCREEN_SPLASH:
-        default:                doWelcomeScreen();      break;      // a startup status screen has nothing to go back to
-    }
+    if (previousScreen == SCREEN_AP_SETUP)
+        drawApSetupScreen();
+    else
+        render(deriveState(), true);            // the counter screen (a startup status screen has nothing to go back to, so it becomes the counter screen)
 }

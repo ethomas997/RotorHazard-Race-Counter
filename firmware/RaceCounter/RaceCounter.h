@@ -47,3 +47,4 @@
 extern uint8_t  raceCount;          // 1..99; 0 while the splash screen is showing
 extern uint8_t  heatCount;          // 0 = no heat number shown
 extern bool     practiceMode;
+extern String   bannerText;         // banner override (e.g. a RotorHazard heat name); "" = derive it from heatCount

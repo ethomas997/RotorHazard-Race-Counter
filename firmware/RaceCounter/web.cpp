@@ -228,6 +228,7 @@ static void handleDecrementRace() {
 static void handleIncrementHeat() {
     heatCount = (heatCount + 1) % 100;   // keep 2‑digit wraparound
     raceCount = 1;
+    bannerText = "";                    // a manual heat change replaces any banner override
 
     handleBackToRoot();
     doRaceCount();
@@ -242,6 +243,7 @@ static void handleIncrementHeat() {
 static void handleDecrementHeat() {
     heatCount = (heatCount - 1 + 100) % 100;
     raceCount = 1;
+    bannerText = "";
 
     handleBackToRoot();
     doRaceCount();
@@ -268,7 +270,8 @@ static void handleSplash() {
     heatCount = 0;
     raceCount = 0;
     practiceMode = false;
-    doWelcomeScreen();
+    bannerText = "";
+    updateDisplay();
 }
 
 
@@ -293,6 +296,7 @@ static void handleSetHeat() {      // can't enter a number in the box after star
         }
     
     heatCount = v;
+    bannerText = "";
 
     if(heatCount)
         raceCount = 1;

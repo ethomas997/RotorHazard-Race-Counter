@@ -16,6 +16,7 @@
 uint8_t raceCount = 0;
 uint8_t heatCount = 0;
 bool    practiceMode = false;
+String  bannerText = "";
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -47,7 +48,7 @@ void setup()
         epaper.update();
         delay(2500);
         standAloneMode = true;
-        doWelcomeScreen();
+        updateDisplay();
         return;                             // skip all the WiFi stuff and just start the display for manual use only
     }
 
@@ -64,7 +65,7 @@ void setup()
 
     delay(2000);
 
-    doWelcomeScreen();
+    updateDisplay();
 }
 
 

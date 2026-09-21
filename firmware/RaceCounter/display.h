@@ -2,6 +2,10 @@
 //
 // Display module: everything that draws on the ePaper panel.
 //
+// The counter screens (splash / heat + race number / practice) are all rendered from one DisplayState that
+// is derived from the shared race state, and the panel is only refreshed when that state actually changes -
+// an ePaper refresh takes seconds, so redrawing the same thing is never free.
+//
 //////////////////////////////////////////////////////////////////////////////
 
 #pragma once
@@ -18,11 +22,24 @@
 
 extern EPaper epaper;
 
+// What the counter screen shows: either the splash logo, or a banner line over a big text (the race number,
+// or "P" in practice mode). The banner is free text, so it can be a RotorHazard heat name.
+
+struct DisplayState {
+    bool    splash = true;
+    String  banner;
+    String  big;
+
+    bool operator==(const DisplayState &o) const { return splash == o.splash && banner == o.banner && big == o.big; }
+    bool operator!=(const DisplayState &o) const { return !(*this == o); }
+};
+
 // The counter screens
-void doPractice();              // toggle practice mode and draw the PRACTICE screen (or the race count if leaving practice)
-void drawPracticeScreen();      // draw the PRACTICE screen without changing practice mode
-void doRaceCount();             // draw the heat banner and the race number
-void doWelcomeScreen();         // draw the RotorHazard splash screen
+void updateDisplay();           // derive the DisplayState from the race state and redraw the panel if it changed
+void doRaceCount();             // leave practice mode (if in it) and show the heat / race number
+void doPractice();              // toggle practice mode and show the result
+String displayBanner();         // the banner text currently derived for the counter screen ("" on the splash screen)
+const char *displayScreenName();// "splash", "counter", "practice", "info", "ap_setup" or "status" - what the panel shows
 
 // Text screens (small font). startStatusScreen() clears the panel, prints the name and firmware version on
 // the first line and leaves the cursor on the next line; the caller prints its text and calls epaper.update().
