@@ -101,7 +101,7 @@ All other libraries (`WiFi`, `WebServer`, `Preferences`) ship with the esp32 cor
 
 | Action | Result | Timing |
 |---|---|---|
-| UP | race number +1 (1…99, wraps) | Acts the moment the button is released, or after 0.25 s if it is held. One press = one step; holding does not repeat. |
+| UP | race number +1 (1…99, wraps) | Acts the moment the button is released, or after 0.25 s if it is held. Keep holding and it keeps stepping, one step per panel refresh (every 2–4 s). |
 | DN | race number −1 (1…99, wraps) | Same as UP. Does nothing while the splash screen is showing. |
 | UP + DN together (short), in normal operation | toggle **PRACTICE** mode | The second button must go down within 0.25 s of the first; acts when either is released (before 3 s). |
 | UP + DN **held for 3 s** | show the **information screen**: mode, SSID, IP, web address, signal, MAC, what was being shown, uptime, free memory | Acts at 3 s while both are still down. Any button press on the information screen goes back to the previous screen (splash / race count / practice) without changing anything. |

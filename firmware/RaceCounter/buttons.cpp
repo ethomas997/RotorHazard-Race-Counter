@@ -35,8 +35,9 @@ void initButtons() {
 //
 // Button handling.
 //
-// Presses are edge-triggered: one press is one action, and holding a button does not repeat. After any
-// action nothing more happens until both buttons have been released.
+// Presses are edge-triggered: one press is one action. After any action nothing more happens until both
+// buttons have been released - except that holding a single button keeps stepping the race number, as if
+// it were being pressed repeatedly (one step per BUTTON_REPEAT_MS, in practice one per panel refresh).
 //
 // A single button acts as soon as it is released, or as soon as it has been held for BUTTON_COMBO_MS,
 // whichever comes first - so a quick tap responds immediately instead of waiting out the combo window (and
@@ -98,12 +99,14 @@ static void longBothPress() {
 }
 
 void handleButtons() {
-    enum State { IDLE, PENDING, BOTH, WAIT_RELEASE };
+    enum State { IDLE, PENDING, REPEAT, BOTH, WAIT_RELEASE };
 
     static State            state = IDLE;
     static unsigned long    stateSince = 0;             // when the current state was entered
     static bool             seenUp = false;             // buttons seen down since the press started
     static bool             seenDn = false;
+    static bool             repeatUp = false;           // which button is being held in REPEAT
+    static unsigned long    lastRepeat = 0;             // when the held button last stepped the count
 
     bool up = readButton(upButton);
     bool dn = readButton(dnButton);
@@ -132,9 +135,28 @@ void handleButtons() {
             stateSince = now;                           // the long-press timer starts when both are down
             state = BOTH;
         }
-        else if ((!up && !dn) || now - stateSince >= BUTTON_COMBO_MS) {
+        else if (!up && !dn) {                          // released: a tap
             singlePress(seenUp);
             state = WAIT_RELEASE;
+        }
+        else if (now - stateSince >= BUTTON_COMBO_MS) { // still held: act now and keep repeating while it stays down
+            singlePress(seenUp);
+            repeatUp = seenUp;
+            lastRepeat = millis();
+            state = inAPMode ? WAIT_RELEASE : REPEAT;   // (single buttons do nothing in AP mode, so nothing to repeat)
+        }
+        break;
+
+    case REPEAT:                                        // a single button is being held: step again every BUTTON_REPEAT_MS
+        if (up && dn) {                                 // the other button came down too: stop, and ignore it
+            state = WAIT_RELEASE;
+        }
+        else if (!(repeatUp ? up : dn)) {               // the held button was released
+            state = (up || dn) ? WAIT_RELEASE : IDLE;   // (if the other one is down by now, ignore it until released)
+        }
+        else if (now - lastRepeat >= BUTTON_REPEAT_MS) {
+            singlePress(repeatUp);
+            lastRepeat = millis();                      // (millis(), not now: the panel refresh inside singlePress takes seconds)
         }
         break;
 
