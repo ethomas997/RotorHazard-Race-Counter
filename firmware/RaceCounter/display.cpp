@@ -10,6 +10,7 @@
 #include "RaceCounter.h"
 #include "display.h"
 #include "wifi_config.h"
+#include "rh_client.h"
 
 #include "RotorHazardLogo.h"
 #include "Orbitron50pt7b.h"
@@ -221,6 +222,17 @@ void showInfoScreen() {
     }
     epaper.print("MAC: ");
     epaper.println(stationMacAddress());
+
+    epaper.print("\nRotorHazard: ");
+    if (rhConfigured()) {
+        epaper.print(rhServer);
+        epaper.print(" - ");
+    }
+    epaper.println(rhStatusText());
+    if (rhHeatId() >= 0) {
+        snprintf(buf, sizeof(buf), "Timer heat: %s, next round %d", rhHeatId() ? rhHeatName().c_str() : "(practice)", rhRound());
+        epaper.println(buf);
+    }
 
     epaper.println();
     if (practiceMode)

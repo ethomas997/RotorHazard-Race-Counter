@@ -5,18 +5,18 @@ pilots and spectators can always tell which race is up. Designed and built by Ro
 
 The display is a Seeed XIAO ESP32-C3 driving a 5.83" 648×480 monochrome ePaper panel in a 3D-printed
 housing with two push-buttons (DN / UP). It can be run standalone from the buttons, or over WiFi from a
-small built-in web page and HTTP API. The longer-term goal of this project is to have it follow a
-[RotorHazard](https://github.com/RotorHazard/RotorHazard) timer automatically.
+small built-in web page and HTTP API – or, given the address of a [RotorHazard](https://github.com/RotorHazard/RotorHazard)
+timer, it follows the timer's current heat and round by itself.
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `firmware/RaceCounter/` | Arduino sketch (RocketSled's V2.0 of Aug 9 2026, plus the fixes listed in `git log`), as modules: `RaceCounter.ino` (`setup`/`loop`), `RaceCounter.h` (config + shared state), `display.h/.cpp` (ePaper drawing), `web.h/.cpp` (web UI / HTTP API), `wifi_config.h/.cpp` (WiFi, setup AP, credentials, standalone mode), `buttons.h/.cpp` |
+| `firmware/RaceCounter/` | Arduino sketch (RocketSled's V2.0 of Aug 9 2026, plus the fixes listed in `git log`), as modules: `RaceCounter.ino` (`setup`/`loop`), `RaceCounter.h` (config + shared state), `display.h/.cpp` (ePaper drawing), `web.h/.cpp` (web UI / HTTP API), `wifi_config.h/.cpp` (WiFi, setup AP, credentials, standalone mode), `buttons.h/.cpp`, `rh_client.h/.cpp` (follows a RotorHazard timer) |
 | `firmware/RaceCounter/sketch.yaml` | Board / partition / option settings, read by arduino-cli and Arduino IDE 2.2+ |
 | `firmware/RaceCounter/bg_png.h` | Web-page background image (RotorHazard logo) embedded as a byte array; regenerate with `tools/bin2header.py` |
 | `firmware/RaceCounter/driver.h` | Seeed_GFX hardware selection (board + panel). **Required** – see Building |
-| `firmware/libraries/Seeed_GFX/` | Git submodule: the display library, pinned to a known-good commit |
+| `firmware/libraries/` | Git submodules, pinned: `Seeed_GFX` (display), `WebSockets` (Socket.IO client), `ArduinoJson` |
 | `docs/parts-list.md` | Bill of materials |
 | `assets/` | Source font (Orbitron Bold, OFL) and logo images used to generate the `.h` bitmaps |
 | `tools/bin2header.py` | Turns a binary file into a `PROGMEM` C array header |
@@ -35,12 +35,12 @@ Full list with links: [docs/parts-list.md](docs/parts-list.md).
 ## Building the firmware
 
 RocketSled builds with Visual Studio + VisualMicro; the sketch also builds in the Arduino IDE 2.x and with
-`arduino-cli`. Verified 2026-09-20 with `arduino-cli` 0.35.2, esp32 core 3.3.8 and Seeed_GFX 2.0.3
-(commit `0dfdd71`):
+`arduino-cli`. Verified 2026-09-20 with `arduino-cli` 0.35.2, esp32 core 3.3.8, Seeed_GFX 2.0.3
+(commit `0dfdd71`), WebSockets 2.7.3 and ArduinoJson 7.4.2:
 
 ```
-Sketch uses 1251067 bytes (39%) of program storage space. Maximum is 3145728 bytes.
-Global variables use 37920 bytes (11%) of dynamic memory.
+Sketch uses 1510517 bytes (48%) of program storage space. Maximum is 3145728 bytes.
+Global variables use 39152 bytes (11%) of dynamic memory.
 ```
 
 The board and options are recorded in `firmware/RaceCounter/sketch.yaml`, which arduino-cli and Arduino
@@ -57,18 +57,20 @@ arduino-cli compile --libraries firmware/libraries firmware/RaceCounter
      (RocketSled's units were flashed with the *Default 4MB* scheme; re-flashing with this one is fine – the
      partition table is rewritten as part of the upload.)
    * USB CDC On Boot: **Enabled**
-2. **Display library:** **[Seeed_GFX](https://github.com/Seeed-Studio/Seeed_GFX)** is not in the Arduino
-   Library Manager, so it is vendored here as a git submodule at `firmware/libraries/Seeed_GFX`, pinned
-   to a commit known to build. Get it with
+2. **Libraries:** **[Seeed_GFX](https://github.com/Seeed-Studio/Seeed_GFX)** (display; not in the Arduino
+   Library Manager), **[WebSockets](https://github.com/Links2004/arduinoWebSockets)** (Socket.IO client) and
+   **[ArduinoJson](https://arduinojson.org/)** are vendored as git submodules under `firmware/libraries/`,
+   pinned to versions known to build. Get them with
    ```bash
    git submodule update --init
    ```
-   (or clone with `--recurse-submodules`). Then make it visible to the Arduino IDE by linking or copying it
-   into your sketchbook's `libraries` folder – on Windows a directory junction avoids a second copy:
+   (or clone with `--recurse-submodules`). Then make them visible to the Arduino IDE by linking or copying
+   each into your sketchbook's `libraries` folder – on Windows a directory junction avoids a second copy:
    ```
    mklink /J "<sketchbook>\libraries\Seeed_GFX" "<repo>\firmware\libraries\Seeed_GFX"
    ```
-   `arduino-cli` users can skip the link and pass `--libraries firmware/libraries` instead.
+   (and likewise for `WebSockets` and `ArduinoJson`). `arduino-cli` users can skip the links and pass
+   `--libraries firmware/libraries` instead.
 
    Seeed_GFX is a fork of TFT_eSPI and **conflicts with TFT_eSPI / Adafruit_GFX – remove those from your
    `libraries` folder first.** The sketch will still compile against the wrong library, it just won't drive
@@ -82,7 +84,7 @@ arduino-cli compile --libraries firmware/libraries firmware/RaceCounter
 4. Compile and upload the sketch over USB-C. That's it – there is no separate filesystem image to upload;
    the web page's background image is compiled into the firmware (`bg_png.h`).
 
-All other libraries (`WiFi`, `WebServer`, `Preferences`) ship with the esp32 core.
+All other libraries (`WiFi`, `WebServer`, `HTTPClient`, `Preferences`) ship with the esp32 core.
 
 ## Operation
 
@@ -115,8 +117,29 @@ Heat number can only be set from the web interface / HTTP API.
 
 The main page has −/+ and *Set* controls for Heat and Race, a *Practice* toggle, and *Reset*. The 🛠 icon
 top-right opens the settings page where the SSID/password can be changed (*Update*) or erased (*Clear*);
-both reboot the device. The settings page also shows the firmware version (`FW_VERSION` in `RaceCounter.h`,
-also printed in the serial banner at boot).
+both reboot the device. The settings page also has the **RotorHazard** server field (below) and shows the
+firmware version (`FW_VERSION` in `RaceCounter.h`, also printed in the serial banner at boot).
+
+### Following a RotorHazard timer
+
+Enter the timer's address in the **RotorHazard** field on the settings page – `host` or `host:port`
+(`192.168.1.10`, `rotorhazard.local:5000`; the port defaults to 5000) – and *Update*. Leave it blank to
+turn this off. Nothing needs to be installed or configured on the timer; RotorHazard 4.1 or later.
+
+The counter then connects to the server as a Socket.IO client, the same way a browser page does, and:
+
+* asks for the current state (`load_data`), then listens to the `race_status` / `current_heat` broadcasts
+  the server sends whenever a race is staged, started, stopped or saved, or the heat is changed;
+* takes the heat id and `next_round` from them – the round that is being run or about to be run – and
+  looks the heat's display name up once via `GET /api/heat/<id>`;
+* shows the heat name as the banner and `next_round` as the big number. Heat 0 on the timer (no heat
+  selected) shows the PRACTICE screen. The panel only refreshes when something actually changed.
+
+The buttons and web page keep working as manual overrides; the next event from the timer wins. The
+connection state is shown on the information screen (hold both buttons) and in `/status` (`rh` object).
+The results broadcast the timer sends after each saved race is bigger than the WebSocket library accepts,
+so the connection drops and reconnects a few seconds later at that point; the state is re-requested on
+every connect, so nothing is missed.
 
 ### HTTP API
 
@@ -134,7 +157,7 @@ lands back on the main page). Scripts should send `allow_redirects=False` or jus
 | `/settings` | WiFi settings page |
 | `/reset` (`POST` only) | **erases the saved WiFi credentials** and reboots into AP mode (the settings-page *Clear* button, behind a confirmation) |
 | `/bg.png` | the web page background image |
-| `/status` | **read-only** JSON: `name`, `version`, `mode` (`wifi` / `ap` / `standalone`), `ssid`, `ip`, `rssi`, `mac`, `heat`, `race`, `practice`, `banner`, `screen` (`splash` / `counter` / `practice` / `info` / `ap_setup` / `status`), `uptime_s`, `free_heap`. Also available in AP mode. |
+| `/status` | **read-only** JSON: `name`, `version`, `mode` (`wifi` / `ap` / `standalone`), `ssid`, `ip`, `rssi`, `mac`, `heat`, `race`, `practice`, `banner`, `screen` (`splash` / `counter` / `practice` / `info` / `ap_setup` / `status`), `rh` (`server`, `state`, `heat_id`, `round`, `heat_name`), `uptime_s`, `free_heap`. Also available in AP mode. |
 
 Out-of-range values are ignored.
 
@@ -149,11 +172,6 @@ forgiving).
 Remaining items:
 
 * The WiFi connect loop never times out (the only escape is holding both buttons).
-* API is browser-oriented: numeric heat only (RotorHazard heats have names), practice is toggle-only, no
-  status endpoint. Needed before RotorHazard can drive it.
-* Planned: connect to a RotorHazard server directly (Socket.IO `race_status` / `current_heat` events carry
-  the heat id and `next_round`; `/api/heat/<id>` gives the name) so the display follows the timer with no
-  plugin required.
 
 ## Credits
 

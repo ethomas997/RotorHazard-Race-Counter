@@ -10,6 +10,7 @@
 #include "web.h"
 #include "wifi_config.h"
 #include "buttons.h"
+#include "rh_client.h"
 
 // Shared race state (declared in RaceCounter.h)
 
@@ -62,6 +63,7 @@ void setup()
 
     connectToWiFi();
     startWebServer();
+    rhBegin();
 
     delay(2000);
 
@@ -77,5 +79,6 @@ void setup()
 void loop()
 {
     server.handleClient();
+    rhLoop();
     handleButtons();
 }

@@ -13,6 +13,7 @@
 #include "display.h"
 #include "web.h"
 #include "wifi_config.h"
+#include "rh_client.h"
 
 String  ssidStored = "";
 String  passStored = "";
@@ -165,6 +166,14 @@ void handleSaveAP() {
         prefs.putString("pass", pass);
         prefs.end();
 
+        if (server.hasArg("rh")) {              // (the settings page has this field; the AP setup page doesn't)
+            String rh = server.arg("rh");
+            rh.trim();
+            prefs.begin("rh", false);
+            prefs.putString("server", rh);
+            prefs.end();
+        }
+
         String message = "<html><body><h2>";
         message += "new SSID: ";
         message += ssid;
@@ -267,5 +276,9 @@ void loadSettings() {
 
     prefs.begin("SA", true);                // standalone mode
     standAlone = prefs.getString("SA", "");
+    prefs.end();
+
+    prefs.begin("rh", true);                // RotorHazard server to follow
+    rhServer = prefs.getString("server", "");
     prefs.end();
 }

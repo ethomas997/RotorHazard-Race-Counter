@@ -13,6 +13,7 @@
 #include "display.h"
 #include "web.h"
 #include "wifi_config.h"
+#include "rh_client.h"
 
 #include <WiFi.h>
 
@@ -118,6 +119,10 @@ static const char SETTINGS_PAGE_2[] PROGMEM = R"html('></div>
 static const char SETTINGS_PAGE_3[] PROGMEM = R"html('>
 <span class='showPw' onclick='togglePw()'>&#128065;&#65039;</span>
 </div></div>
+<div class='formRow'><label>RotorHazard:</label><input class='inputBox' name='rh' placeholder='host or host:port' value=')html";
+//  ... the RotorHazard server ...
+static const char SETTINGS_PAGE_4[] PROGMEM = R"html('></div>
+<h5>RotorHazard server to follow (blank = none)</h5>
 <div class='buttonRow'>
   <button type='submit' class='updateBtn'>Update</button>
   <button type='submit' form='clearForm'>Clear</button>
@@ -149,6 +154,13 @@ static void beginPage() {
 
 static void endPage() {
     server.sendContent("");                             // the terminating chunk
+}
+
+// Sends a dynamic value. An empty chunk would end the response (see endPage), so empty values are skipped.
+
+static void sendValue(const String &v) {
+    if (v.length())
+        server.sendContent(v);
 }
 
 // Makes a value safe to put inside a single-quoted HTML attribute or in element text.
@@ -365,10 +377,12 @@ static void handleSetRace() {      // same functionality as above, but for the s
 static void handleSettings() {
     beginPage();
     server.sendContent_P(SETTINGS_PAGE_1);
-    server.sendContent(htmlEscape(ssidStored));         // (escaped: a quote in the SSID or password would otherwise break the attribute)
+    sendValue(htmlEscape(ssidStored));                  // (escaped: a quote in the SSID or password would otherwise break the attribute)
     server.sendContent_P(SETTINGS_PAGE_2);
-    server.sendContent(htmlEscape(passStored));
+    sendValue(htmlEscape(passStored));
     server.sendContent_P(SETTINGS_PAGE_3);
+    sendValue(htmlEscape(rhServer));
+    server.sendContent_P(SETTINGS_PAGE_4);
     endPage();
 }
 
@@ -408,6 +422,8 @@ void handleStatus() {
     json += ",\"mac\":" + jsonString(stationMacAddress());
     json += ",\"heat\":" + String(heatCount) + ",\"race\":" + String(raceCount) + ",\"practice\":" + (practiceMode ? "true" : "false");
     json += ",\"banner\":" + jsonString(displayBanner()) + ",\"screen\":\"" + displayScreenName() + "\"";
+    json += ",\"rh\":{\"server\":" + jsonString(rhServer) + ",\"state\":" + jsonString(rhStatusText())
+          + ",\"heat_id\":" + String(rhHeatId()) + ",\"round\":" + String(rhRound()) + ",\"heat_name\":" + jsonString(rhHeatName()) + "}";
     json += ",\"uptime_s\":" + String(millis() / 1000) + ",\"free_heap\":" + String(ESP.getFreeHeap());
     json += "}\n";
 

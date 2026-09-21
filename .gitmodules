@@ -2,3 +2,11 @@
 	path = firmware/libraries/Seeed_GFX
 	url = https://github.com/Seeed-Studio/Seeed_GFX.git
 	shallow = true
+[submodule "firmware/libraries/WebSockets"]
+	path = firmware/libraries/WebSockets
+	url = https://github.com/Links2004/arduinoWebSockets.git
+	shallow = true
+[submodule "firmware/libraries/ArduinoJson"]
+	path = firmware/libraries/ArduinoJson
+	url = https://github.com/bblanchon/ArduinoJson.git
+	shallow = true
