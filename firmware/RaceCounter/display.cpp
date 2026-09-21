@@ -136,6 +136,15 @@ String displayBanner() {
     return s.splash ? String("") : s.banner;
 }
 
+String displayDescription() {
+    switch (currentScreen) {
+        case SCREEN_COUNTER:    return rendered.splash ? String("RotorHazard splash screen") : rendered.banner + " / " + rendered.big;
+        case SCREEN_AP_SETUP:   return "WiFi setup instructions";
+        case SCREEN_INFO:       return "information screen";
+        default:                return "startup text";
+    }
+}
+
 const char *displayScreenName() {
     switch (currentScreen) {
         case SCREEN_COUNTER:    return rendered.splash ? "splash" : (practiceMode ? "practice" : "counter");

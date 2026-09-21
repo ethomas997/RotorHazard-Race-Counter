@@ -40,6 +40,7 @@ void doRaceCount();             // leave practice mode (if in it) and show the h
 void doPractice();              // toggle practice mode and show the result
 String displayBanner();         // the banner text currently derived for the counter screen ("" on the splash screen)
 const char *displayScreenName();// "splash", "counter", "practice", "info", "ap_setup" or "status" - what the panel shows
+String displayDescription();    // what the panel shows, for people: "Heat 1 / 17", "PRACTICE / P", "RotorHazard splash screen", ...
 
 // Text screens (small font). startStatusScreen() clears the panel, prints the name and firmware version on
 // the first line and leaves the cursor on the next line; the caller prints its text and calls epaper.update().

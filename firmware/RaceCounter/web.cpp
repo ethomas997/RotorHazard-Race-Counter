@@ -51,11 +51,16 @@ button:active{background:#ccc;}
 .resetBut{width:120px;color:red;font-weight:600;background:#f0f0f0;border:2px solid #a00;}
 .bottomButtons{display:flex;gap:20px;justify-content:center;margin-top:10px;}
 .settingsIcon{position:fixed;top:10px;right:10px;font-size:32px;cursor:pointer;text-decoration:none;color:#333;}
+.showing{text-align:center;font-size:18px;margin:0 0 10px 0;}
+.refreshBut{width:120px;font-weight:600;background:#f0f0f0;border:2px solid #666;}
 .bgImg{position:fixed;top:3%;left:3%;width:94%;height:94%;object-fit:contain;opacity:0.20;z-index:-1;}
 </style></head>
 <body><img src='/bg.png' class='bgImg'><div class='main-container'>
 <a href='/settings' class='settingsIcon'>&#128736;</a>
 <h1>)html" PAGE_TITLE R"html(</h1>
+<p class='showing'>Showing: <b>)html";
+//  ... what the panel shows ...
+static const char MAIN_PAGE_1B[] PROGMEM = R"html(</b></p>
 <table><colgroup><col class='textcol'><col class='smallcol'><col class='smallcol'><col class='inputcol'><col class='setcol'></colgroup>
 <tr><td><h2>Heat </h2></td>
 <td><button class='incdec' onclick="location.href='/heatDec'">-</button></td>
@@ -79,6 +84,7 @@ static const char MAIN_PAGE_3[] PROGMEM = R"html(
 //  ... practiceOn / practiceOff ...
 static const char MAIN_PAGE_4[] PROGMEM = R"html(' onclick="location.href='/practice'">Practice</button>
 <button class='resetBut' onclick="location.href='/splash'">Reset</button>
+<button class='refreshBut' onclick="location.href='/'">Refresh</button>
 </div><br>
 </div></body></html>
 )html";
@@ -191,6 +197,8 @@ static String htmlEscape(const String &in) {
 static void handleRoot() {
     beginPage();
     server.sendContent_P(MAIN_PAGE_1);
+    server.sendContent(htmlEscape(displayDescription()));
+    server.sendContent_P(MAIN_PAGE_1B);
 
     if (heatCount)                                      // heat 0 shows as "None" and can't be typed into: use + or Set to start it
         server.sendContent("<input type='number' name='v1' min='0' max='99' value='" + String(heatCount) + "'>");

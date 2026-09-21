@@ -116,7 +116,8 @@ Heat number can only be set from the web interface / HTTP API.
 
 ### Web interface
 
-The main page has −/+ and *Set* controls for Heat and Race, a *Practice* toggle, and *Reset*. The 🛠 icon
+The main page shows what the panel is currently displaying, and has −/+ and *Set* controls for Heat and Race,
+a *Practice* toggle, *Reset*, and *Refresh* (re-reads the current state from the counter). The 🛠 icon
 top-right opens the settings page where the SSID/password can be changed (*Update*) or erased (*Clear*);
 both reboot the device. The settings page also has the **RotorHazard** server field (below) and shows the
 firmware version (`FW_VERSION` in `RaceCounter.h`, also printed in the serial banner at boot).
