@@ -11,7 +11,8 @@
 //     will get, i.e. the one that is being run or about to be run. That is what the panel shows - except
 //     that once a race has been stopped (race_status DONE, not yet saved) the panel already shows the round
 //     after it, so people see what's coming next without waiting for the save.
-//   * The heat's display name isn't in those events, so it's fetched once per heat from GET /api/heat/<id>.
+//   * The heat's display name isn't in those events, so it's fetched from GET /api/heat/<id> on each update
+//     (which also catches a heat being renamed); the race format's name from GET /api/format/<id>.
 //   * Everything else the server broadcasts (heartbeat, leaderboards, results...) is ignored. Frames bigger
 //     than the WebSockets library's 15 KB limit (the results after each race save) make it drop the
 //     connection; it reconnects by itself and we re-request the state, so nothing is lost.
@@ -153,11 +154,15 @@ static void applyState() {
         bannerText = "";
     }
     else {
-        if (heatId != nameHeatId) {             // new heat: look up its name (once)
-            if (!fetchHeatName(heatId, heatName))
-                heatName = "Heat " + String(heatId);
-            nameHeatId = heatId;
-        }
+        // Look the heat's name up on every update, not just when the heat changes: the server sends
+        // race_status when a heat is renamed, and that's the only way to notice. (One small GET per burst
+        // of events; the panel only refreshes if the name actually differs.)
+        String name;
+        if (fetchHeatName(heatId, name))
+            heatName = name;
+        else if (heatId != nameHeatId)          // lookup failed and nothing cached for this heat
+            heatName = "Heat " + String(heatId);
+        nameHeatId = heatId;
         if (formatId != nameFormatId) {         // new race format: look up its name (once)
             if (!fetchFormatName(formatId, formatName))
                 formatName = "";
@@ -237,6 +242,7 @@ static void onSocketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t
     switch (type) {
         case sIOtype_CONNECT:                   // the WebSocket is up
             lastRxAt = millis();
+            nameHeatId = nameFormatId = -1;     // names may have changed while we were away: look them up afresh
             Serial.println("[RH] connected");
             sio.send(sIOtype_CONNECT, "/");     // join the default namespace (Socket.IO v3+ doesn't do this automatically)
             sio.sendEVENT("[\"load_data\",{\"load_types\":[\"race_status\",\"current_heat\"]}]");

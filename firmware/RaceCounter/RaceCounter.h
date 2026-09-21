@@ -16,7 +16,7 @@
 
 #include <Arduino.h>
 
-#define FW_VERSION  "3.0.1"                     // shown on the settings page and in the serial banner
+#define FW_VERSION  "3.0.2"                     // shown on the settings page and in the serial banner
 #define PAGE_TITLE  "RotorHazard Race Counter"  // web page titles / headings
 
 #define DNSWITCH    D5
