@@ -39,6 +39,7 @@
 
 #define BUTTON_DEBOUNCE_MS  20      // a button reading has to hold this long before it counts (filters contact bounce)
 #define BUTTON_COMBO_MS     250     // after one button goes down, how long to wait for the other before treating it as a single press
+#define BUTTON_LONG_MS      3000    // how long both buttons must be held to bring up the information screen
 
 // Shared race state (defined in RaceCounter.ino)
 

@@ -25,10 +25,6 @@ bool    practiceMode = false;
 
 void setup()
 {
-    uint16_t    H;
-
-    char        charBuff[128];
-
     Serial.begin(115200);
 
     delay(2000);
@@ -38,42 +34,32 @@ void setup()
     initButtons();
 
     epaper.begin();
-    epaper.fillScreen(TFT_WHITE);
-    epaper.setFreeFont(&FreeSansBold12pt7b);
-    epaper.setTextSize(1);
-    H = epaper.fontHeight();
 
-	checkClearAll(H);                       // check if both buttons are pressed on startup, if so, does not return, clears WiFi credentials and restarts
-	                                        // which then comes back through setup again, but with cleared credentials
+    checkClearAll();                        // check if both buttons are pressed on startup, if so, does not return, clears WiFi credentials and restarts
+                                            // which then comes back through setup again, but with cleared credentials 
 
     loadSettings();
 
-	if (standAlone == "TRUE") {
-		Serial.println("Standalone mode enabled, skipping WiFi setup");
-		sprintf(charBuff, "Standalone mode enabled.\nNo WiFi needed to operate.\nPush both buttons on startup\nto clear this setting.\n");
-		epaper.setCursor(0, H);              // center top
-		epaper.print(charBuff);
-		epaper.update();
+    if (standAlone == "TRUE") {
+        Serial.println("Standalone mode enabled, skipping WiFi setup");
+        startStatusScreen();
+        epaper.print("\nStandalone mode enabled.\nNo WiFi needed to operate.\nPush both buttons on startup\nto clear this setting.\n");
+        epaper.update();
         delay(2500);
-		doWelcomeScreen();
-		standAloneMode = true;
-		return;                             // skip all the WiFi stuff and just start the display for manual use only
-	}
+        standAloneMode = true;
+        doWelcomeScreen();
+        return;                             // skip all the WiFi stuff and just start the display for manual use only
+    }
 
     if (ssidStored == "") {                 // go to AP mode instead of trying to connect to WiFi
-        sprintf(charBuff, "No stored WiFi credentials.\nConnect to SSID:\n   RaceCounter-Setup\nto configure...\n" );
-        epaper.setCursor(0, H);              // center top
-        epaper.print(charBuff);
-		epaper.println("Push both buttons to set standalone mode");
-        epaper.update();
-        startConfigAP();
-		inAPMode = true;                    // in AP mode, loop() checks for both buttons pressed, and turns on stand alone mode so no WiFI needed to operate
+        inAPMode = true;                    // in AP mode the buttons only set standalone mode or show the information screen
+        startConfigAP();                    // (draws the setup screen)
         return;
     }
 
-	inAPMode = false;
+    inAPMode = false;
 
-    connectToWiFi(H);
+    connectToWiFi();
     startWebServer();
 
     delay(2000);

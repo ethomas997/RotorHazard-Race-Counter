@@ -35,12 +35,18 @@ void initButtons() {
 //
 // Button handling.
 //
-// Presses are edge-triggered: one press is one action, and holding a button does not repeat. A single button
-// acts as soon as it is released, or as soon as it has been held for BUTTON_COMBO_MS, whichever comes first -
-// so a quick tap responds immediately instead of waiting out the combo window (and then being missed because
-// the button was already up again). Both buttons down within BUTTON_COMBO_MS of each other is the
-// both-buttons press, and it acts the moment the second one goes down. After any action nothing more happens
-// until both buttons have been released.
+// Presses are edge-triggered: one press is one action, and holding a button does not repeat. After any
+// action nothing more happens until both buttons have been released.
+//
+// A single button acts as soon as it is released, or as soon as it has been held for BUTTON_COMBO_MS,
+// whichever comes first - so a quick tap responds immediately instead of waiting out the combo window (and
+// then being missed because the button was already up again).
+//
+// Both buttons down within BUTTON_COMBO_MS of each other is a both-buttons press. If either is released
+// before BUTTON_LONG_MS it is a short press (toggle practice mode; in AP mode, set standalone mode); if both
+// are still held at BUTTON_LONG_MS it is a long press, which shows the information screen.
+//
+// While the information screen is showing, any press just restores the screen that was there before.
 //
 
 // Returns the debounced state of a button (true = pressed, active low). A change in the raw reading has to
@@ -59,53 +65,11 @@ static bool readButton(Button &b) {
     return b.pressed;
 }
 
-void handleButtons() {
-    static unsigned long    firstDownAt = 0;            // when the first button went down; 0 = nothing pending
-    static bool             seenUp = false;             // buttons seen down since firstDownAt
-    static bool             seenDn = false;
-    static bool             waitForRelease = false;     // set after an action: ignore the buttons until both are up
+static void singlePress(bool isUp) {
+    if (inAPMode)
+        return;                                         // single buttons do nothing in AP mode
 
-    bool up = readButton(upButton);
-    bool dn = readButton(dnButton);
-
-    if (waitForRelease) {
-        if (!up && !dn)
-            waitForRelease = false;
-        return;
-    }
-
-    if (firstDownAt == 0) {                             // nothing pending: has a press started?
-        if (!up && !dn)
-            return;
-        firstDownAt = millis();
-        seenUp = up;
-        seenDn = dn;
-    }
-    else {
-        seenUp |= up;
-        seenDn |= dn;
-    }
-
-    bool combo    = seenUp && seenDn;
-    bool released = !up && !dn;
-    bool expired  = millis() - firstDownAt >= BUTTON_COMBO_MS;
-
-    if (!combo && !released && !expired)
-        return;                                         // still waiting to see whether this becomes a both-buttons press
-
-    firstDownAt = 0;
-    waitForRelease = true;
-
-    if (combo) {
-        if (inAPMode)
-            setStandAlone();                            // in AP mode both buttons turn on standalone mode - this will force a restart
-        else
-            doPractice();
-    }
-    else if (inAPMode) {
-        // single buttons do nothing in AP mode
-    }
-    else if (seenUp) {
+    if (isUp) {
         Serial.println("Up Switch pressed!");
 
         if (++raceCount == 100)
@@ -118,5 +82,76 @@ void handleButtons() {
         if (--raceCount == 0)
             raceCount = 99;
         doRaceCount();
+    }
+}
+
+static void shortBothPress() {
+    if (inAPMode)
+        setStandAlone();                                // in AP mode both buttons turn on standalone mode - this will force a restart
+    else
+        doPractice();
+}
+
+static void longBothPress() {
+    Serial.println("Both switches held: information screen");
+    showInfoScreen();
+}
+
+void handleButtons() {
+    enum State { IDLE, PENDING, BOTH, WAIT_RELEASE };
+
+    static State            state = IDLE;
+    static unsigned long    stateSince = 0;             // when the current state was entered
+    static bool             seenUp = false;             // buttons seen down since the press started
+    static bool             seenDn = false;
+
+    bool up = readButton(upButton);
+    bool dn = readButton(dnButton);
+    unsigned long now = millis();
+
+    switch (state) {
+
+    case IDLE:
+        if (!up && !dn)
+            break;
+        if (infoScreenShowing()) {                      // any press on the information screen just goes back
+            restorePreviousScreen();
+            state = WAIT_RELEASE;
+            break;
+        }
+        seenUp = up;
+        seenDn = dn;
+        stateSince = now;
+        state = PENDING;
+        // fall through - the press may already be a both-buttons press
+
+    case PENDING:                                       // one button is down: is the other coming?
+        seenUp |= up;
+        seenDn |= dn;
+        if (seenUp && seenDn) {
+            stateSince = now;                           // the long-press timer starts when both are down
+            state = BOTH;
+        }
+        else if ((!up && !dn) || now - stateSince >= BUTTON_COMBO_MS) {
+            singlePress(seenUp);
+            state = WAIT_RELEASE;
+        }
+        break;
+
+    case BOTH:                                          // both were down: short or long press?
+        if (!(up && dn)) {
+            shortBothPress();
+            state = WAIT_RELEASE;
+        }
+        else if (now - stateSince >= BUTTON_LONG_MS) {
+            longBothPress();
+            state = WAIT_RELEASE;
+        }
+        break;
+
+    case WAIT_RELEASE:                                  // an action has happened: ignore everything until both are up
+        if (!up && !dn)
+            state = IDLE;
+        break;
     }
 }

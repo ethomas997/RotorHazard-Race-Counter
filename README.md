@@ -93,6 +93,7 @@ All other libraries (`WiFi`, `WebServer`, `Preferences`) ship with the esp32 cor
   password, *Save & Reboot*.
 * It then connects to that network, shows the IP it was given and its MAC for a few seconds, and displays
   the RotorHazard splash screen. The web interface is at `http://<ip>/`.
+* Every startup / status text screen has the name and firmware version on its first line.
 * The MAC shown on both the AP screen and the "Connected" screen is the station MAC – the one your router
   sees – so it can be used directly for a static DHCP lease.
 
@@ -102,10 +103,11 @@ All other libraries (`WiFi`, `WebServer`, `Preferences`) ship with the esp32 cor
 |---|---|---|
 | UP | race number +1 (1…99, wraps) | Acts the moment the button is released, or after 0.25 s if it is held. One press = one step; holding does not repeat. |
 | DN | race number −1 (1…99, wraps) | Same as UP. Does nothing while the splash screen is showing. |
-| UP + DN together, in normal operation | toggle **PRACTICE** mode | Acts as soon as both are down; the second button must go down within 0.25 s of the first. Holding them does nothing further – release both before the next press. |
+| UP + DN together (short), in normal operation | toggle **PRACTICE** mode | The second button must go down within 0.25 s of the first; acts when either is released (before 3 s). |
+| UP + DN **held for 3 s** | show the **information screen**: mode, SSID, IP, web address, signal, MAC, what was being shown, uptime, free memory | Acts at 3 s while both are still down. Any button press on the information screen goes back to the previous screen (splash / race count / practice) without changing anything. |
 | UP + DN held at power-on | erase saved WiFi credentials and standalone flag, restart into AP mode | The pins are read **once**, about 2–3 s after power-on. Hold both before switching on, keep holding until "Old SSID and password deleted…" appears, then release. |
 | UP + DN while "Connecting to SSID…" | same – use this if it is stuck on a network it can't reach | Checked every 0.3 s while connecting; any simultaneous press of ≥ 0.3 s works. |
-| UP + DN while in AP mode | enable **standalone mode** (no WiFi, buttons only) and restart | Same both-down detection as the practice toggle. To leave standalone mode, use the power-on hold. |
+| UP + DN while in AP mode | short: enable **standalone mode** (no WiFi, buttons only) and restart; long: information screen | Same detection as above. To leave standalone mode, use the power-on hold. |
 
 Heat number can only be set from the web interface / HTTP API.
 
@@ -113,7 +115,7 @@ Heat number can only be set from the web interface / HTTP API.
 
 The main page has −/+ and *Set* controls for Heat and Race, a *Practice* toggle, and *Reset*. The 🛠 icon
 top-right opens the settings page where the SSID/password can be changed (*Update*) or erased (*Clear*);
-both reboot the device. The settings page also shows the firmware version (`FW_VERSION` in `RaceCounter.ino`,
+both reboot the device. The settings page also shows the firmware version (`FW_VERSION` in `RaceCounter.h`,
 also printed in the serial banner at boot).
 
 ### HTTP API

@@ -18,6 +18,18 @@
 
 extern EPaper epaper;
 
-void doPractice();          // toggle practice mode and draw the PRACTICE screen (or the race count if leaving practice)
-void doRaceCount();         // draw the heat banner and the race number
-void doWelcomeScreen();     // draw the RotorHazard splash screen
+// The counter screens
+void doPractice();              // toggle practice mode and draw the PRACTICE screen (or the race count if leaving practice)
+void drawPracticeScreen();      // draw the PRACTICE screen without changing practice mode
+void doRaceCount();             // draw the heat banner and the race number
+void doWelcomeScreen();         // draw the RotorHazard splash screen
+
+// Text screens (small font). startStatusScreen() clears the panel, prints the name and firmware version on
+// the first line and leaves the cursor on the next line; the caller prints its text and calls epaper.update().
+void startStatusScreen();
+void drawApSetupScreen();       // the "connect to RaceCounter-Setup" screen shown while running the setup access point
+
+// The information screen (long press of both buttons)
+void showInfoScreen();          // show device information, remembering which screen was showing before
+bool infoScreenShowing();
+void restorePreviousScreen();   // redraw whatever was showing before the information screen

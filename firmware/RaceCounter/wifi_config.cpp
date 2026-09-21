@@ -47,17 +47,17 @@ String stationMacAddress() {
 //
 // Connects to the stored WiFi network, showing progress on the panel, then shows the IP address and MAC.
 // Does not return until connected; holding both buttons while it waits clears the credentials and restarts
-// (see checkClearAll). H is the current font height, used to position the text.
+// (see checkClearAll).
 //
 //////////////////////////////////////////////////////////////////////////////
 
-void connectToWiFi(uint16_t H) {
+void connectToWiFi() {
     char charBuff[128];
 
     sprintf(charBuff, "Connecting to SSID: %s\n", ssidStored.c_str());
     Serial.print(charBuff);
 
-    epaper.setCursor(0, H);              // center top
+    startStatusScreen();
     epaper.print(charBuff);
     epaper.update();
 
@@ -75,7 +75,7 @@ void connectToWiFi(uint16_t H) {
             epaper.update();
             lastRefresh = millis();
         }
-        checkClearAll(H);
+        checkClearAll();
     }
 
     Serial.println("\nConnected!");
@@ -110,15 +110,7 @@ void startConfigAP() {
     Serial.print("AP IP: ");
     Serial.println(WiFi.softAPIP());
 
-    epaper.setFreeFont(&FreeSansBold12pt7b);
-
-    epaper.print("\nSSID: RaceCounter-Setup");
-    epaper.print("AP IP: ");
-    epaper.println(WiFi.softAPIP());
-    epaper.print("MAC: ");
-    epaper.println(stationMacAddress());
-	epaper.println("\npush both buttons to set standalone mode");
-    epaper.update();
+    drawApSetupScreen();
 
     server.on("/", handleRootAP);
     server.on("/save", HTTP_POST, handleSaveAP);
@@ -197,9 +189,6 @@ void handleSaveAP() {
 //
 
 void handleReset() {
-
-    int16_t H;
-
     prefs.begin("wifi", false);
     prefs.remove("ssid");
     prefs.remove("pass");
@@ -207,12 +196,8 @@ void handleReset() {
 
     server.send(200, "text/html", "<html><body style='font-family:sans-serif;'><h2>WiFi credentials cleared.<br>Rebooting into setup mode...</h2></body></html>");
 
-    epaper.fillScreen(TFT_WHITE);
-    epaper.setFreeFont(&FreeSansBold12pt7b);    // last font used was probably the big race-number font
-    epaper.setTextSize(1);
-    H = epaper.fontHeight();
-    epaper.setCursor(0, H);              // center top
-    epaper.print("Old SSID and password deleted\nRestarting in 5 seconds...");
+    startStatusScreen();
+    epaper.print("\nOld SSID and password deleted\nRestarting in 5 seconds...");
     epaper.update();
     delay(5000);
 
@@ -247,7 +232,7 @@ void setStandAlone() {
 // This function is called in those places and if both buttons are presseed, it clears the stored SSID and password, shows a message on the display, and restarts after a delay.
 //
 
-void checkClearAll(uint8_t H) {
+void checkClearAll() {
     if ((digitalRead(UPSWITCH) == LOW) && (digitalRead(DNSWITCH) == LOW)) {
         Serial.println("Clearing SSID and Password, then restarting");
 
@@ -260,11 +245,8 @@ void checkClearAll(uint8_t H) {
         prefs.remove("SA");
         prefs.end();
 
-        epaper.setFreeFont(&FreeSansBold12pt7b);
-
-        epaper.fillScreen(TFT_WHITE);
-        epaper.setCursor(0, H);              // center top
-        epaper.print("Old SSID and password deleted\nStandalone disabled\nRestarting in 5 seconds");
+        startStatusScreen();
+        epaper.print("\nOld SSID and password deleted\nStandalone disabled\nRestarting in 5 seconds");
         epaper.update();
         delay(5000);
         ESP.restart();
