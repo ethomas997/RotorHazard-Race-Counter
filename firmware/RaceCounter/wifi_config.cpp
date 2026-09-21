@@ -173,14 +173,17 @@ void handleSaveAP() {
             prefs.end();
         }
 
-        String message = "<html><body><h2>";
-        message += "new SSID: ";
-        message += ssid;
-        message += "<br>PWD is: ";
-        message += pass;
-        message += "<br><br>Saved!<br>Rebooting...</h2></body></html>";
-
-        server.send(200, "text/html", message);
+        static const char SAVED_PAGE[] PROGMEM = R"html(<!DOCTYPE html><html><head><title>)html" PAGE_TITLE R"html(</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<style>body{font-family:sans-serif;text-align:center;padding:20px;}
+button{font-size:20px;height:40px;margin:16px 2px;padding:0 16px;border-radius:6px;border:1px solid #666;background:#e0e0e0;}</style>
+</head><body>
+<h2>Settings saved.<br>Rebooting...</h2>
+<p>Give it about 15 seconds to reconnect.</p>
+<button onclick="location.href='/'">Main page</button>
+</body></html>
+)html";
+        server.send_P(200, "text/html", SAVED_PAGE);
 
         delay(1500);
         ESP.restart();
