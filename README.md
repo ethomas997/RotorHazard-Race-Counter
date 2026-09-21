@@ -12,7 +12,7 @@ small built-in web page and HTTP API. The longer-term goal of this project is to
 
 | Path | Contents |
 |---|---|
-| `firmware/RaceCounter/` | Arduino sketch (RocketSled's V2.0 of Aug 9 2026, plus the fixes listed in `git log`) |
+| `firmware/RaceCounter/` | Arduino sketch (RocketSled's V2.0 of Aug 9 2026, plus the fixes listed in `git log`), as modules: `RaceCounter.ino` (`setup`/`loop`), `RaceCounter.h` (config + shared state), `display.h/.cpp` (ePaper drawing), `web.h/.cpp` (web UI / HTTP API), `wifi_config.h/.cpp` (WiFi, setup AP, credentials, standalone mode), `buttons.h/.cpp` |
 | `firmware/RaceCounter/sketch.yaml` | Board / partition / option settings, read by arduino-cli and Arduino IDE 2.2+ |
 | `firmware/RaceCounter/bg_png.h` | Web-page background image (RotorHazard logo) embedded as a byte array; regenerate with `tools/bin2header.py` |
 | `firmware/RaceCounter/driver.h` | Seeed_GFX hardware selection (board + panel). **Required** – see Building |

@@ -1,0 +1,9 @@
+# Text files: LF in the repository and on checkout (the sources are LF; the Arduino IDE and VisualMicro
+# are happy with LF on Windows, and this keeps git quiet about conversions)
+* text=auto eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.ttf binary
+*.zip binary
