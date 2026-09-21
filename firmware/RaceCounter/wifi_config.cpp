@@ -126,7 +126,7 @@ void startConfigAP() {
 // It generates the HTML for the page that allows you to enter a WiFi SSID and password, and submit them to be saved in preferences.
 //
 
-static const char AP_SETUP_PAGE[] PROGMEM = R"html(<!DOCTYPE html><html><head><title>)html" PAGE_TITLE R"html(</title>
+static const char AP_SETUP_PAGE_1[] PROGMEM = R"html(<!DOCTYPE html><html><head><title>)html" PAGE_TITLE R"html(</title>
 <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>
 <style>
 h1{font-size:26px;margin:8px 0 12px 0;font-weight:bold;}
@@ -137,6 +137,9 @@ button{font-size:20px;height:40px;margin:2px;padding:0 10px;border-radius:6px;bo
 button:active{background:#ccc;}
 .pwWrap{position:relative;display:inline-block;}
 .showPw{position:absolute;right:6px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;color:#666;}
+.mac{font-size:18px;margin-top:24px;}
+.mac b{font-family:monospace;font-size:20px;letter-spacing:1px;}
+.version{font-size:12px;color:#888;margin-top:6px;}
 </style></head><body style='font-family:sans-serif;'>
 <h2>)html" PAGE_TITLE R"html( WiFi Setup</h2>
 <form action='/save' method='POST'>
@@ -144,6 +147,10 @@ SSID:<br><input name='ssid'><br><br>
 Password:<br><span class='pwWrap'><input name='pass' id='pw' type='password'><span class='showPw' onclick='togglePw()'>&#128065;&#65039;</span></span><br><br>
 <button type='submit'>Save & Reboot</button>
 </form><br>Push both buttons to set standalone mode
+<p class='mac'>MAC address: <b>)html";
+//  ... the station MAC address ...
+static const char AP_SETUP_PAGE_2[] PROGMEM = R"html(</b></p>
+<p class='version'>Firmware v)html" FW_VERSION R"html(</p>
 <script>
 function togglePw(){
   var p=document.getElementById('pw');
@@ -154,7 +161,12 @@ function togglePw(){
 )html";
 
 static void handleRootAP() {
-    server.send_P(200, "text/html", AP_SETUP_PAGE);
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);    // chunked: the MAC goes in between the two static parts
+    server.send(200, "text/html", "");
+    server.sendContent_P(AP_SETUP_PAGE_1);
+    server.sendContent(stationMacAddress());
+    server.sendContent_P(AP_SETUP_PAGE_2);
+    server.sendContent("");
 }
 
 
