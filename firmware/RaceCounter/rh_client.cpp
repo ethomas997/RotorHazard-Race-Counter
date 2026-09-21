@@ -8,7 +8,9 @@
 //     needs the admin password; only the events that change things on the server are protected.
 //   * The server broadcasts race_status and current_heat whenever a race is staged, started, stopped,
 //     saved or the heat is changed. Both carry the heat id and next_round - the round the next saved race
-//     will get, i.e. the one that is being run or about to be run. That is exactly what the panel shows.
+//     will get, i.e. the one that is being run or about to be run. That is what the panel shows - except
+//     that once a race has been stopped (race_status DONE, not yet saved) the panel already shows the round
+//     after it, so people see what's coming next without waiting for the save.
 //   * The heat's display name isn't in those events, so it's fetched once per heat from GET /api/heat/<id>.
 //   * Everything else the server broadcasts (heartbeat, leaderboards, results...) is ignored. Frames bigger
 //     than the WebSockets library's 15 KB limit (the results after each race save) make it drop the
@@ -30,6 +32,12 @@
 #define RH_SETTLE_MS            250     // events arrive in bursts (race_status + current_heat); wait this long after the last one before redrawing
 #define RH_HTTP_TIMEOUT_MS      3000
 
+// RotorHazard race_status values (RHRace.py, class RaceStatus)
+#define RH_RACE_READY           0
+#define RH_RACE_RACING          1
+#define RH_RACE_DONE            2
+#define RH_RACE_STAGING         3
+
 String rhServer = "";
 
 static SocketIOclient   sio;
@@ -40,6 +48,7 @@ static bool             connected = false;
 
 static int              heatId = -1;            // last state received from the server
 static int              roundNum = -1;
+static int              raceStatus = RH_RACE_READY;    // from the last race_status event
 static bool             pending = false;        // state received, not yet applied to the display
 static unsigned long    lastEventAt = 0;
 
@@ -109,8 +118,11 @@ static void applyState() {
         practiceMode = false;
         bannerText   = heatName;
         heatCount    = heatId > 99 ? 99 : heatId;
-        if (roundNum >= 1)
-            raceCount = roundNum > 99 ? 99 : roundNum;
+        int shown = roundNum;
+        if (shown >= 1 && raceStatus == RH_RACE_DONE)  // race stopped but not saved yet: show the round that comes next
+            shown++;
+        if (shown >= 1)
+            raceCount = shown > 99 ? 99 : shown;
         else if (raceCount == 0)
             raceCount = 1;
     }
@@ -132,6 +144,7 @@ static void handleEvent(uint8_t *payload, size_t length) {
     filter[1]["race_heat_id"] = true;
     filter[1]["current_heat"] = true;
     filter[1]["next_round"]   = true;
+    filter[1]["race_status"]  = true;
 
     JsonDocument doc;
     if (deserializeJson(doc, payload, length, DeserializationOption::Filter(filter)))
@@ -142,10 +155,14 @@ static void handleEvent(uint8_t *payload, size_t length) {
         return;
 
     int id;
-    if (!strcmp(name, "race_status"))
+    if (!strcmp(name, "race_status")) {
         id = doc[1]["race_heat_id"] | -1;
-    else if (!strcmp(name, "current_heat"))
+        raceStatus = doc[1]["race_status"] | RH_RACE_READY;
+    }
+    else if (!strcmp(name, "current_heat")) {
         id = doc[1]["current_heat"] | -1;
+        raceStatus = RH_RACE_READY;             // a heat change means the previous race was saved or discarded
+    }
     else
         return;                                 // heartbeat, leaderboard, ... - not ours
 
@@ -157,7 +174,7 @@ static void handleEvent(uint8_t *payload, size_t length) {
     pending     = true;
     lastEventAt = millis();
 
-    Serial.printf("[RH] %s: heat %d, next round %d\n", name, heatId, roundNum);
+    Serial.printf("[RH] %s: heat %d, next round %d, race status %d\n", name, heatId, roundNum, raceStatus);
 }
 
 
