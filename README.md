@@ -144,8 +144,11 @@ The counter then connects to the server as a Socket.IO client, the same way a br
 
 * asks for the current state (`load_data`), then listens to the `race_status` / `current_heat` broadcasts
   the server sends whenever a race is staged, started, stopped or saved, or the heat is changed;
-* takes the heat id and `next_round` from them – the round that is being run or about to be run – and
-  looks the heat's display name up via `GET /api/heat/<id>` (on every update, so a renamed heat is noticed);
+* takes the heat id and `next_round` from them – the round that is being run or about to be run. Heat and
+  race-format names come over the socket too (`heat_list` / `format_data` on connect, `heat_data` when a heat
+  is renamed), with `GET /api/heat/<id>` / `/api/format/<id>` as the fallback for anything not in those lists;
+  if the lists are too large for the counter's WebSocket library (over 15 KB – a very big event) it switches
+  to the `/api` lookups for the rest of the session (`/status` → `rh.names_from`);
 * shows the heat name as the banner and `next_round` as the big number – or `next_round + 1` once a race has
   been stopped but not yet saved, so the next race is announced right away. Heat 0 on the timer (no heat
   selected, "Practice Mode") shows the PRACTICE screen with the big "P"; a real heat run with a practice race
@@ -179,7 +182,7 @@ lands back on the main page). Scripts should send `allow_redirects=False` or jus
 | `/settings` | WiFi settings page |
 | `/reset` (`POST` only) | **erases the saved WiFi credentials** and reboots into AP mode (the settings-page *Clear* button, behind a confirmation) |
 | `/bg.png` | the web page background image |
-| `/status` | **read-only** JSON: `name`, `version`, `mode` (`wifi` / `ap` / `standalone`), `ssid`, `ip`, `rssi`, `mac`, `heat`, `race`, `practice`, `banner`, `screen` (`splash` / `counter` / `practice` / `info` / `ap_setup` / `status`), `rh` (`server`, `state`, `heat_id`, `round`, `heat_name`), `uptime_s`, `free_heap`. Also available in AP mode. |
+| `/status` | **read-only** JSON: `name`, `version`, `mode` (`wifi` / `ap` / `standalone`), `ssid`, `ip`, `rssi`, `mac`, `heat`, `race`, `practice`, `banner`, `screen` (`splash` / `counter` / `practice` / `info` / `ap_setup` / `status`), `rh` (`server`, `state`, `heat_id`, `round`, `heat_name`, `names_from`), `uptime_s`, `free_heap`. Also available in AP mode. |
 
 Out-of-range values are ignored.
 

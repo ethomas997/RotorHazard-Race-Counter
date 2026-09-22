@@ -452,7 +452,8 @@ void handleStatus() {
     json += ",\"heat\":" + String(heatCount) + ",\"race\":" + String(raceCount) + ",\"practice\":" + (practiceMode ? "true" : "false");
     json += ",\"banner\":" + jsonString(displayBanner()) + ",\"screen\":\"" + displayScreenName() + "\"";
     json += ",\"rh\":{\"server\":" + jsonString(rhServer) + ",\"state\":" + jsonString(rhStatusText())
-          + ",\"heat_id\":" + String(rhHeatId()) + ",\"round\":" + String(rhRound()) + ",\"heat_name\":" + jsonString(rhHeatName()) + "}";
+          + ",\"heat_id\":" + String(rhHeatId()) + ",\"round\":" + String(rhRound()) + ",\"heat_name\":" + jsonString(rhHeatName())
+          + ",\"names_from\":\"" + (rhUsingApi() ? "api" : "socket") + "\"}";
     json += ",\"uptime_s\":" + String(millis() / 1000) + ",\"free_heap\":" + String(ESP.getFreeHeap());
     json += "}\n";
 

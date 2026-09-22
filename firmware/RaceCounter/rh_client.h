@@ -23,6 +23,7 @@ bool   rhConnected();               // Socket.IO connection is up
 bool   rhLinkLost();                // configured, but nothing has been heard from the server for RH_LINK_TIMEOUT_MS
 String rhStatusText();              // "not configured" / "waiting for WiFi" / "active" / "lost"
 String rhServerAddress();           // "host:port" as actually used (port filled in if it was left out)
+bool   rhUsingApi();                // heat / format names are being fetched from /api (the socket lists were too large)
 int    rhHeatId();                  // last heat id received from the server, -1 = none yet (0 = practice mode on the timer)
 int    rhRound();                   // last round number received, -1 = none yet
 String rhHeatName();                // display name of the last heat received ("" = none yet)

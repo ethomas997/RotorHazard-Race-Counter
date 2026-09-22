@@ -11,11 +11,17 @@
 //     will get, i.e. the one that is being run or about to be run. That is what the panel shows - except
 //     that once a race has been stopped (race_status DONE, not yet saved) the panel already shows the round
 //     after it, so people see what's coming next without waiting for the save.
-//   * The heat's display name isn't in those events, so it's fetched from GET /api/heat/<id> on each update
-//     (which also catches a heat being renamed); the race format's name from GET /api/format/<id>.
-//   * Everything else the server broadcasts (heartbeat, leaderboards, results...) is ignored. Frames bigger
-//     than the WebSockets library's 15 KB limit (the results after each race save) make it drop the
-//     connection; it reconnects by itself and we re-request the state, so nothing is lost.
+//   * The heat's display name and the race format's name aren't in those events. Socket first: on connect we
+//     also ask for heat_list and format_data (every heat / format with its name) and keep the names in a
+//     table; a rename arrives as a heat_data broadcast, which updates the table. Fallback: any name that
+//     isn't in the table is fetched from GET /api/heat/<id> or /api/format/<id>.
+//   * Frames bigger than the WebSockets library's 15 KB limit make it drop the connection (it reconnects by
+//     itself and we re-request the state, so nothing is lost). The results broadcast after every race save
+//     always does this. If the lists themselves are too big - a disconnect right after asking for them,
+//     before they arrive - the socket route for names can't work on this event, so names come from /api
+//     for the rest of the session (and the lists are no longer requested). The library never tells us the
+//     close code, hence the inference.
+//   * Everything else the server broadcasts (heartbeat, leaderboards, results...) is ignored.
 //
 //////////////////////////////////////////////////////////////////////////////
 
@@ -23,6 +29,7 @@
 #include <HTTPClient.h>
 #include <SocketIOclient.h>
 #include <ArduinoJson.h>
+#include <map>
 
 #include "RaceCounter.h"
 #include "display.h"
@@ -35,6 +42,8 @@
                                         // oversized results broadcast causes after every race save without flagging it
 #define RH_SETTLE_MS            250     // events arrive in bursts (race_status + current_heat); wait this long after the last one before redrawing
 #define RH_HTTP_TIMEOUT_MS      3000
+#define RH_LISTS_WAIT_MS        3000    // after connecting, how long to give heat_list / format_data before falling back to /api
+#define RH_LISTS_DROP_MS        15000   // a disconnect this soon after asking for the lists, without getting them, means they were too big
 
 // RotorHazard race_status values (RHRace.py, class RaceStatus)
 #define RH_RACE_READY           0
@@ -65,6 +74,13 @@ static String           heatName;
 static int              nameFormatId = -1;      // the race format whose name is cached
 static String           formatName;
 static bool             formatIsPractice = false;   // the cached format's name contains "practice"
+
+static std::map<int, String> heatNames;         // from the heat_list / heat_data events
+static std::map<int, String> formatNames;       // from the format_data event
+static bool             useApi = false;         // names come from /api for the rest of the session (see above)
+static bool             gotHeatList = false;    // received since the last connect
+static bool             gotFormatData = false;
+static unsigned long    listsRequestedAt = 0;   // when the lists were last asked for (0 = not outstanding)
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -154,16 +170,26 @@ static void applyState() {
         bannerText = "";
     }
     else {
-        // Look the heat's name up on every update, not just when the heat changes: the server sends
-        // race_status when a heat is renamed, and that's the only way to notice. (One small GET per burst
-        // of events; the panel only refreshes if the name actually differs.)
+        // The heat's name: from the table the socket filled, otherwise from /api. In API mode it's looked up
+        // on every update (the server sends race_status when a heat is renamed, and that's the only way to
+        // notice there); in socket mode a rename arrives as heat_data and updates the table.
         String name;
-        if (fetchHeatName(heatId, name))
+        auto h = heatNames.find(heatId);
+        if (!useApi && h != heatNames.end())
+            heatName = h->second;
+        else if ((useApi || heatId != nameHeatId) && fetchHeatName(heatId, name))
             heatName = name;
-        else if (heatId != nameHeatId)          // lookup failed and nothing cached for this heat
+        else if (heatId != nameHeatId)          // nothing anywhere for this heat
             heatName = "Heat " + String(heatId);
         nameHeatId = heatId;
-        if (formatId != nameFormatId) {         // new race format: look up its name (once)
+
+        auto f = formatNames.find(formatId);
+        if (!useApi && f != formatNames.end()) {
+            formatName = f->second;
+            formatIsPractice = mentionsPractice(formatName);
+            nameFormatId = formatId;
+        }
+        else if (formatId != nameFormatId) {    // new race format: look up its name (once)
             if (!fetchFormatName(formatId, formatName))
                 formatName = "";
             formatIsPractice = mentionsPractice(formatName);
@@ -192,44 +218,85 @@ static void applyState() {
 // current_heat are of interest, and only three fields of those, so a filter keeps the parse small.
 //
 
-static void handleEvent(uint8_t *payload, size_t length) {
-    JsonDocument filter;
-    filter[0] = true;
-    filter[1]["race_heat_id"] = true;
-    filter[1]["current_heat"] = true;
-    filter[1]["next_round"]   = true;
-    filter[1]["race_status"]  = true;
-    filter[1]["race_format_id"] = true;
+// Reads a list of {id, displayname|name} objects into a name table.
 
-    JsonDocument doc;
-    if (deserializeJson(doc, payload, length, DeserializationOption::Filter(filter)))
+static void readNames(JsonArrayConst list, const char *nameKey, std::map<int, String> &table) {
+    for (JsonObjectConst item : list) {
+        int id = item["id"] | -1;
+        const char *name = item[nameKey];
+        if (id >= 0 && name && *name)
+            table[id] = name;
+    }
+}
+
+static void handleEvent(uint8_t *rawPayload, size_t length) {
+    // The buffer is parsed twice (name first, then the fields of interest), so it must be read as const:
+    // ArduinoJson parses a non-const buffer in zero-copy mode, which modifies it in place.
+    const char *payload = (const char *)rawPayload;
+
+    // First just the event name (cheap: the filter drops everything else)
+    JsonDocument nameFilter, nameDoc;
+    nameFilter[0] = true;
+    if (deserializeJson(nameDoc, payload, length, DeserializationOption::Filter(nameFilter)))
         return;
-
-    const char *name = doc[0];
+    const char *name = nameDoc[0];
     if (!name)
         return;
 
-    // The heat id is null (newer servers) or 0 (older ones) when the timer is in Practice Mode rather than on
-    // a heat; either way that's heat 0 here.
-    JsonVariantConst heat;
-    if (!strcmp(name, "race_status")) {
-        heat       = doc[1]["race_heat_id"];
-        raceStatus = doc[1]["race_status"] | RH_RACE_READY;
-        formatId   = doc[1]["race_format_id"] | -1;
+    // ArduinoJson applies the first element of a filter array to every element of the input array, so the
+    // field filters go in filter[0] even though the fields are in payload element 1.
+    JsonDocument filter, doc;
+
+    if (!strcmp(name, "race_status") || !strcmp(name, "current_heat")) {
+        filter[0]["race_heat_id"]   = true;
+        filter[0]["current_heat"]   = true;
+        filter[0]["next_round"]     = true;
+        filter[0]["race_status"]    = true;
+        filter[0]["race_format_id"] = true;
+        if (deserializeJson(doc, payload, length, DeserializationOption::Filter(filter)))
+            return;
+
+        // The heat id is null (newer servers) or 0 (older ones) when the timer is in Practice Mode rather
+        // than on a heat; either way that's heat 0 here.
+        JsonVariantConst heat;
+        if (name[0] == 'r') {                   // race_status
+            heat       = doc[1]["race_heat_id"];
+            raceStatus = doc[1]["race_status"] | RH_RACE_READY;
+            formatId   = doc[1]["race_format_id"] | -1;
+        }
+        else {                                  // current_heat
+            heat       = doc[1]["current_heat"];
+            raceStatus = RH_RACE_READY;         // a heat change means the previous race was saved or discarded
+        }
+        heatId   = heat.isNull() ? 0 : heat.as<int>();
+        roundNum = doc[1]["next_round"] | -1;   // null while in practice mode
+        Serial.printf("[RH] %s: heat %d, next round %d, race status %d\n", name, heatId, roundNum, raceStatus);
     }
-    else if (!strcmp(name, "current_heat")) {
-        heat       = doc[1]["current_heat"];
-        raceStatus = RH_RACE_READY;             // a heat change means the previous race was saved or discarded
+    else if (!strcmp(name, "heat_list") || !strcmp(name, "heat_data")) {   // every heat with its name (heat_data: also broadcast on a rename)
+        filter[0]["heats"][0]["id"] = true;
+        filter[0]["heats"][0]["displayname"] = true;
+        if (deserializeJson(doc, payload, length, DeserializationOption::Filter(filter)))
+            return;
+        readNames(doc[1]["heats"].as<JsonArrayConst>(), "displayname", heatNames);
+        gotHeatList = true;
+        Serial.printf("[RH] %s: %u heat names\n", name, (unsigned)heatNames.size());
+    }
+    else if (!strcmp(name, "format_data")) {    // every race format with its name
+        filter[0]["formats"][0]["id"] = true;
+        filter[0]["formats"][0]["name"] = true;
+        if (deserializeJson(doc, payload, length, DeserializationOption::Filter(filter)))
+            return;
+        readNames(doc[1]["formats"].as<JsonArrayConst>(), "name", formatNames);
+        gotFormatData = true;
+        Serial.printf("[RH] format_data: %u format names\n", (unsigned)formatNames.size());
     }
     else
         return;                                 // heartbeat, leaderboard, ... - not ours
 
-    heatId      = heat.isNull() ? 0 : heat.as<int>();
-    roundNum    = doc[1]["next_round"] | -1;    // null while in practice mode
+    if (gotHeatList && gotFormatData)
+        listsRequestedAt = 0;                   // both lists in: nothing outstanding
     pending     = true;
     lastEventAt = millis();
-
-    Serial.printf("[RH] %s: heat %d, next round %d, race status %d\n", name, heatId, roundNum, raceStatus);
 }
 
 
@@ -245,7 +312,15 @@ static void onSocketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t
             nameHeatId = nameFormatId = -1;     // names may have changed while we were away: look them up afresh
             Serial.println("[RH] connected");
             sio.send(sIOtype_CONNECT, "/");     // join the default namespace (Socket.IO v3+ doesn't do this automatically)
-            sio.sendEVENT("[\"load_data\",{\"load_types\":[\"race_status\",\"current_heat\"]}]");
+            gotHeatList = gotFormatData = false;
+            if (useApi) {
+                sio.sendEVENT("[\"load_data\",{\"load_types\":[\"race_status\",\"current_heat\"]}]");
+                listsRequestedAt = 0;
+            }
+            else {                              // socket first: the name lists as well
+                sio.sendEVENT("[\"load_data\",{\"load_types\":[\"heat_list\",\"format_data\",\"race_status\",\"current_heat\"]}]");
+                listsRequestedAt = millis();
+            }
             connected = true;
             break;
 
@@ -253,6 +328,14 @@ static void onSocketIOEvent(socketIOmessageType_t type, uint8_t *payload, size_t
             if (connected)
                 Serial.println("[RH] disconnected");
             connected = false;
+            // Dropped right after asking for the name lists, before they arrived: they were too big for the
+            // WebSockets library (it closes the socket on any frame over its limit, and doesn't say so).
+            // Use /api for names from now on, and stop asking for the lists.
+            if (!useApi && listsRequestedAt && millis() - listsRequestedAt < RH_LISTS_DROP_MS && !(gotHeatList && gotFormatData)) {
+                useApi = true;
+                listsRequestedAt = 0;
+                Serial.println("[RH] name lists too large for the socket: using /api for names from now on");
+            }
             break;
 
         case sIOtype_EVENT:
@@ -316,7 +399,10 @@ void rhLoop() {
 
     sio.loop();
 
-    if (pending && millis() - lastEventAt >= RH_SETTLE_MS) {
+    // Apply the received state once events have settled - and, right after a connect, once the name lists
+    // have arrived or had their chance (otherwise the first update would needlessly go to /api).
+    bool listsPending = listsRequestedAt && millis() - listsRequestedAt < RH_LISTS_WAIT_MS;
+    if (pending && millis() - lastEventAt >= RH_SETTLE_MS && !listsPending) {
         pending = false;
         applyState();
     }
@@ -334,6 +420,7 @@ void rhLoop() {
 bool rhConfigured() { return rhServer.length() > 0; }
 bool rhConnected()  { return enabled && connected; }
 bool rhLinkLost()   { return enabled && linkLost; }
+bool rhUsingApi()   { return useApi; }
 int  rhHeatId()     { return heatId; }
 int  rhRound()      { return roundNum; }
 
