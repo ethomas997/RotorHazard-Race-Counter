@@ -16,7 +16,7 @@
 
 #include <Arduino.h>
 
-#define FW_VERSION  "3.0.3"                     // shown on the settings page and in the serial banner
+#define FW_VERSION  "3.0.4"                     // shown on the settings page and in the serial banner
 #define PAGE_TITLE  "RotorHazard Race Counter"  // web page titles / headings
 
 #define DNSWITCH    D5
@@ -31,6 +31,12 @@
 #define STATEFONTSIZE   3
 #define HEATFONT        Orbitron50pt7b
 #define HEATFONTSIZE    1
+#define ROUNDLABEL_ENABLED  true    // show a vertical "ROUND" label beside race numbers 1-19 when the banner isn't "RACE #"
+#define ROUNDLABELFONT      FreeSansBold18pt7b   // the vertical "ROUND" label beside the race number (Orbitron's D and O look alike this small)
+#define ROUNDLABELFONTSIZE  1
+#define ROUNDLABEL_X1       22      // x of the label's left edge beside a single-digit number
+#define ROUNDLABEL_X2       11      // ... and beside a two-digit number (10-19)
+#define ROUNDLABEL_LETTER_GAP 18    // space between the label's letters (the label is centred on the number's height)
 
 #define CENTERINGOFFSET -10     // the width of text returned by the library is saying the text is slightly wider than it actually is, so it doesn't center right. This compensates.
 

@@ -153,7 +153,9 @@ The counter then connects to the server as a Socket.IO client, the same way a br
   been stopped but not yet saved, so the next race is announced right away. Heat 0 on the timer (no heat
   selected, "Practice Mode") shows the PRACTICE screen with the big "P"; a real heat run with a practice race
   format (any format whose name contains "practice", such as the stock "Open Practice") shows "PRACTICE" as
-  the banner with the round number below it. The panel only refreshes when something actually changed.
+  the banner with the round number below it. Whenever the banner is anything other than "RACE #", a
+  vertical "ROUND" label is drawn to the left of the number (for numbers below 20 – wider ones fill the
+  panel). The panel only refreshes when something actually changed.
 
 The buttons and web page keep working as manual overrides; the next event from the timer wins.
 

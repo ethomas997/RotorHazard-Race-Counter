@@ -29,9 +29,10 @@ struct DisplayState {
     bool    splash = true;
     String  banner;
     String  big;
+    bool    roundLabel = false; // show a vertical "ROUND" label to the left of the big text (a race number)
     bool    linkLost = false;   // show the "connection to the timer lost" marker
 
-    bool operator==(const DisplayState &o) const { return splash == o.splash && banner == o.banner && big == o.big && linkLost == o.linkLost; }
+    bool operator==(const DisplayState &o) const { return splash == o.splash && banner == o.banner && big == o.big && roundLabel == o.roundLabel && linkLost == o.linkLost; }
     bool operator!=(const DisplayState &o) const { return !(*this == o); }
 };
 

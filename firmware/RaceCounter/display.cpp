@@ -60,6 +60,7 @@ static DisplayState deriveState() {
         else
             s.banner = "RACE #";
         s.big = String(raceCount);
+        s.roundLabel = ROUNDLABEL_ENABLED && s.banner != "RACE #" && raceCount < 20;   // (a two-digit number from 20 up leaves no room for it)
     }
     return s;
 }
@@ -96,8 +97,51 @@ static void drawLinkLostMarker() {
     epaper.print("!");
 }
 
+// Draws text reading upwards (rotated 90 degrees anticlockwise) with its left edge at x = left, centred on
+// y = centerY, with `gap` pixels between the letters. The text is drawn into a 1-bit sprite the normal way
+// and then copied to the panel pixel by pixel with the axes swapped.
+
+static void drawVerticalLabel(const char *text, int left, int centerY, int gap) {
+    const GFXfont  *font = &ROUNDLABELFONT;
+    const int       size = ROUNDLABELFONTSIZE;
+    const int       n = strlen(text);
+    int             length = 0, thick = 0, ascent = 0;
+
+    for (int i = 0; i < n; i++) {               // ink widths of the letters, and the tallest of them
+        const GFXglyph *g = &font->glyph[text[i] - font->first];
+        length += g->width * size + (i ? gap : 0);
+        thick   = max(thick, g->height * size);
+        ascent  = max(ascent, -g->yOffset * size);
+    }
+
+    TFT_eSprite spr(&epaper);
+    spr.setColorDepth(1);
+    if (!spr.createSprite(length, thick))
+        return;
+    spr.fillSprite(TFT_WHITE);
+    spr.setTextColor(TFT_BLACK);
+    spr.setFreeFont(font);
+    spr.setTextSize(size);
+
+    for (int i = 0, x = 0; i < n; i++) {
+        const GFXglyph *g = &font->glyph[text[i] - font->first];
+        spr.setCursor(x - g->xOffset * size, ascent);
+        spr.print(text[i]);
+        x += g->width * size + gap;
+    }
+
+    int bottom = centerY + length / 2;
+    for (int sy = 0; sy < thick; sy++)          // sprite x runs up the panel, sprite y runs across it
+        for (int sx = 0; sx < length; sx++)
+            if (spr.readPixelValue(sx, sy) == 0)
+                epaper.drawPixel(left + sy, bottom - sx, TFT_BLACK);
+
+    spr.deleteSprite();
+}
+
 static void render(const DisplayState &s, bool force = false) {
     uint16_t    W, H;
+    int         x;
 
     if (!force && currentScreen == SCREEN_COUNTER && s == rendered)
         return;                                 // already showing exactly this
@@ -117,7 +161,15 @@ static void render(const DisplayState &s, bool force = false) {
         epaper.setFreeFont(&STATEFONT);
         epaper.setTextSize(STATEFONTSIZE);
         W = epaper.textWidth(s.big.c_str());
-        epaper.setCursor((DISPLAYWIDTH - W) / 2 + CENTERINGOFFSET, DISPLAYHEIGHT - 20); // center bottom
+        x = (DISPLAYWIDTH - W) / 2 + CENTERINGOFFSET;                           // center bottom
+
+        if (s.roundLabel) {
+            const GFXglyph *g = &STATEFONT.glyph[s.big[0] - STATEFONT.first];   // centre the label on the digits' ink box
+            drawVerticalLabel("ROUND", s.big.length() == 1 ? ROUNDLABEL_X1 : ROUNDLABEL_X2,
+                              DISPLAYHEIGHT - 20 + (g->yOffset + g->height / 2) * STATEFONTSIZE, ROUNDLABEL_LETTER_GAP);
+        }
+
+        epaper.setCursor(x, DISPLAYHEIGHT - 20);
         epaper.print(s.big);
     }
 
