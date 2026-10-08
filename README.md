@@ -21,6 +21,7 @@ timer, it follows the timer's current heat and round by itself.
 | `firmware/libraries/` | Git submodules, pinned: `Seeed_GFX` (display), `WebSockets` (Socket.IO client), `ArduinoJson` |
 | `docs/parts-list.md` | Bill of materials |
 | `pics/` | Photos of the built unit and screenshots of the web pages |
+| `stl/` | 3D-printed housing models (STL); see [Enclosure](#enclosure-3d-printing) |
 | `assets/` | Source font (Orbitron Bold, OFL) and logo images used to generate the `.h` bitmaps |
 | `tools/bin2header.py` | Turns a binary file into a `PROGMEM` C array header |
 
@@ -31,13 +32,30 @@ timer, it follows the timer's current heat and round by itself.
 * **5.83" monochrome ePaper**, 648×480, UC8179 controller, 24-pin FPC
 * Two momentary push-buttons to GND: **DN → D5**, **UP → D6** (internal pull-ups)
 * 18650 Li-ion cell with a latching power button; USB-C pass-through port for charging and programming
-* 3D-printed housing (STLs not yet in this repo)
+* 3D-printed housing — STL files in [`stl/`](stl/) (see [Enclosure](#enclosure-3d-printing))
 
 Full list with links: [docs/parts-list.md](docs/parts-list.md).
 
 | Front | Inside |
 |---|---|
 | ![Front](pics/race-counter-front.jpg) | ![Inside, back plate off](pics/race-counter-back.jpg) |
+
+## Enclosure (3D printing)
+
+The housing was designed by RocketSled. The STL files are in [`stl/`](stl/):
+
+| File | Part |
+|---|---|
+| `Race Counter r2.stl` | Main body / front bezel |
+| `Race Counter Back r3.stl` | Back cover |
+| `Race Counter Base r2.stl` | Base / stand |
+
+The geometry is split into sections so the unit can be printed in the colors shown in the photos, but
+**the STLs do not carry any color information** — that is multi-material data specific to the printer, and
+the colored-in version is only usable on a Bambu Lab H2C (multi-color) printer. On any other printer the
+parts print in a single color; to reproduce the two-tone look you assign colors to the sections yourself in
+your slicer.
+
 
 ## Building the firmware
 
