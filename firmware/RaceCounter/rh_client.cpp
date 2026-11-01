@@ -10,7 +10,9 @@
 //     saved or the heat is changed. Both carry the heat id and next_round - the round the next saved race
 //     will get, i.e. the one that is being run or about to be run. That is what the panel shows - except
 //     that once a race has been stopped (race_status DONE, not yet saved) the panel already shows the round
-//     after it, so people see what's coming next without waiting for the save.
+//     after it, so people see what's coming next without waiting for the save. If next_round goes up while
+//     the status is still DONE (co-op saves send such a race_status, and a missed READY leaves us there), the
+//     race has been saved and the number already includes the +1.
 //   * The heat's display name and the race format's name aren't in those events. Socket first: on connect we
 //     also ask for heat_list and format_data (every heat / format with its name) and keep the names in a
 //     table; a rename arrives as a heat_data broadcast, which updates the table. Fallback: any name that
@@ -62,6 +64,8 @@ static bool             connected = false;
 static int              heatId = -1;            // last state received from the server
 static int              roundNum = -1;
 static int              raceStatus = RH_RACE_READY;    // from the last race_status event
+static int              doneRound = -1;         // next_round when the race entered DONE
+static int              doneHeatId = -1;        // ...and the heat it was on
 static bool             pending = false;        // state received, not yet applied to the display
 static unsigned long    lastEventAt = 0;
 static unsigned long    lastRxAt = 0;           // when anything at all last arrived from the server (heartbeats included)
@@ -199,8 +203,8 @@ static void applyState() {
         bannerText   = formatIsPractice ? "PRACTICE" : heatName;
         heatCount    = heatId > 99 ? 99 : heatId;
         int shown = roundNum;
-        if (shown >= 1 && raceStatus == RH_RACE_DONE)  // race stopped but not saved yet: show the round that comes next
-            shown++;
+        if (shown >= 1 && raceStatus == RH_RACE_DONE && roundNum == doneRound)    // race stopped but not saved yet:
+            shown++;                                                            // show the round that comes next
         if (shown >= 1)
             raceCount = shown > 99 ? 99 : shown;
         else if (raceCount == 0)
@@ -259,6 +263,7 @@ static void handleEvent(uint8_t *rawPayload, size_t length) {
         // The heat id is null (newer servers) or 0 (older ones) when the timer is in Practice Mode rather
         // than on a heat; either way that's heat 0 here.
         JsonVariantConst heat;
+        int prevStatus = raceStatus;
         if (name[0] == 'r') {                   // race_status
             heat       = doc[1]["race_heat_id"];
             raceStatus = doc[1]["race_status"] | RH_RACE_READY;
@@ -270,6 +275,10 @@ static void handleEvent(uint8_t *rawPayload, size_t length) {
         }
         heatId   = heat.isNull() ? 0 : heat.as<int>();
         roundNum = doc[1]["next_round"] | -1;   // null while in practice mode
+        if (raceStatus == RH_RACE_DONE && (prevStatus != RH_RACE_DONE || heatId != doneHeatId)) {
+            doneRound  = roundNum;              // the race just stopped: remember the round it was run as
+            doneHeatId = heatId;
+        }
         Serial.printf("[RH] %s: heat %d, next round %d, race status %d\n", name, heatId, roundNum, raceStatus);
     }
     else if (!strcmp(name, "heat_list") || !strcmp(name, "heat_data")) {   // every heat with its name (heat_data: also broadcast on a rename)
