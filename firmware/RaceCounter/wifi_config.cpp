@@ -48,9 +48,44 @@ String stationMacAddress() {
 //
 // Connects to the stored WiFi network, showing progress on the panel, then shows the IP address and MAC.
 // Does not return until connected; holding both buttons for CLEAR_HOLD_MS while it waits clears the
-// credentials and restarts (see checkClearAll).
+// credentials and restarts (see checkClearAll). After CONNECT_TIMEOUT_MS it gives up and waits for a
+// button press to restart (see waitForRestart).
 //
 //////////////////////////////////////////////////////////////////////////////
+
+// The reminder printed under the first line of the connecting and gave-up screens
+static void printClearHint() {
+    epaper.setFreeFont(&FreeSans12pt7b);
+    epaper.printf("\n(Hold both buttons for %d seconds to\nclear the WiFi settings)\n\n", CLEAR_HOLD_MS / 1000);
+}
+
+// Shows a static "push a button to restart" screen and waits. A press of either button restarts (when it is
+// released); holding both for CLEAR_HOLD_MS still clears the WiFi settings first. Does not return.
+
+static void waitForRestart() {
+    Serial.println("\nNo connection, giving up; push a button to restart");
+
+    startStatusScreen();
+    epaper.print("Push a button to restart\n");
+    printClearHint();
+    epaper.update();
+
+    while (digitalRead(UPSWITCH) == LOW || digitalRead(DNSWITCH) == LOW)   // (ignore a button that was already down)
+        delay(20);
+
+    for (;;) {
+        if (digitalRead(UPSWITCH) == LOW || digitalRead(DNSWITCH) == LOW) {
+            delay(BUTTON_DEBOUNCE_MS);
+            while (digitalRead(UPSWITCH) == LOW || digitalRead(DNSWITCH) == LOW) {
+                checkClearAll();                // (returns at once unless both are down, and if they are let go early)
+                delay(20);
+            }
+            Serial.println("Restarting");
+            ESP.restart();
+        }
+        delay(20);
+    }
+}
 
 void connectToWiFi() {
     char charBuff[128];
@@ -60,15 +95,16 @@ void connectToWiFi() {
 
     startStatusScreen();
     epaper.print(charBuff);
-    epaper.setFreeFont(&FreeSans12pt7b);
-    epaper.printf("\n(Hold both buttons for %d seconds to\nclear the WiFi settings)\n\n", CLEAR_HOLD_MS / 1000);
+    printClearHint();
     epaper.update();
 
     WiFi.begin(ssidStored, passStored);
 
-    unsigned long lastRefresh = millis();
+    unsigned long started = millis(), lastRefresh = started;
 
     while (WiFi.status() != WL_CONNECTED) {
+        if (millis() - started >= CONNECT_TIMEOUT_MS)
+            waitForRestart();
         delay(CONNECT_POLL_MS);
         Serial.print(".");
         epaper.print(".");                                      // dots accumulate in the frame buffer...

@@ -135,6 +135,7 @@ All other libraries (`WiFi`, `WebServer`, `HTTPClient`, `Preferences`) ship with
 | UP + DN **held for 3 s** | show the **information screen**: mode, SSID, IP, web address, signal, MAC, what was being shown, uptime, free memory | Acts at 3 s while both are still down. Any button press on the information screen goes back to the previous screen (splash / race count / practice) without changing anything. |
 | UP + DN held at power-on | erase saved WiFi credentials and standalone flag, restart into AP mode | Checked about 2–3 s after power-on. Hold both before switching on and keep holding for **5 s** after that, until "Old SSID and password deleted…" appears. Released sooner, nothing happens. |
 | UP + DN **held for 5 s** while "Connecting to SSID…" | same – use this if it is stuck on a network it can't reach (the screen shows a reminder) | Checked every 0.3 s; the 5 s count starts when both are seen down. A refresh of the progress dots (every 10 s) can delay that by 2–4 s. |
+| UP or DN on the "Push a button to restart" screen | restart and try connecting again | After 5 minutes without a connection the counter stops trying and shows this screen. Acts when the button is released. Holding both for 5 s there still erases the WiFi settings. |
 | UP + DN while in AP mode | short: enable **standalone mode** (no WiFi, buttons only) and restart; long: information screen | Same detection as above. To leave standalone mode, use the power-on hold. |
 
 Heat number can only be set from the web interface / HTTP API.
@@ -205,18 +206,6 @@ lands back on the main page). Scripts should send `allow_redirects=False` or jus
 | `/status` | **read-only** JSON: `name`, `version`, `mode` (`wifi` / `ap` / `standalone`), `ssid`, `ip`, `rssi`, `mac`, `heat`, `race`, `practice`, `banner`, `screen` (`splash` / `counter` / `practice` / `info` / `ap_setup` / `status`), `rh` (`server`, `state`, `heat_id`, `round`, `heat_name`, `names_from`), `uptime_s`, `free_heap`. Also available in AP mode. |
 
 Out-of-range values are ignored.
-
-## Known issues / roadmap
-
-The sketch is RocketSled's V2.0 plus a series of small fixes, each its own commit – see `git log`. The
-first import commit holds the code exactly as received. Note for anyone building from that original: the
-Arduino build system matches include names to libraries case-sensitively even on Windows, so
-`<webserver.h>` / `<preferences.h>` had to become `WebServer.h` / `Preferences.h` (VisualMicro is more
-forgiving).
-
-Remaining items:
-
-* The WiFi connect loop never times out (the only escape is holding both buttons for 5 s).
 
 ## Credits
 
