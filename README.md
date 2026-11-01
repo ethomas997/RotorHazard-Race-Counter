@@ -133,8 +133,8 @@ All other libraries (`WiFi`, `WebServer`, `HTTPClient`, `Preferences`) ship with
 | UP or DN on a PRACTICE screen | leave practice: the big-"P" screen goes back to the race count, the "PRACTICE over a round number" screen switches its banner to "RACE #" – the number is not changed either way | |
 | UP + DN together (short), in normal operation | toggle **PRACTICE** mode | The second button must go down within 0.25 s of the first; acts when either is released (before 3 s). |
 | UP + DN **held for 3 s** | show the **information screen**: mode, SSID, IP, web address, signal, MAC, what was being shown, uptime, free memory | Acts at 3 s while both are still down. Any button press on the information screen goes back to the previous screen (splash / race count / practice) without changing anything. |
-| UP + DN held at power-on | erase saved WiFi credentials and standalone flag, restart into AP mode | The pins are read **once**, about 2–3 s after power-on. Hold both before switching on, keep holding until "Old SSID and password deleted…" appears, then release. |
-| UP + DN while "Connecting to SSID…" | same – use this if it is stuck on a network it can't reach | Checked every 0.3 s while connecting; any simultaneous press of ≥ 0.3 s works. |
+| UP + DN held at power-on | erase saved WiFi credentials and standalone flag, restart into AP mode | Checked about 2–3 s after power-on. Hold both before switching on and keep holding for **5 s** after that, until "Old SSID and password deleted…" appears. Released sooner, nothing happens. |
+| UP + DN **held for 5 s** while "Connecting to SSID…" | same – use this if it is stuck on a network it can't reach (the screen shows a reminder) | Checked every 0.3 s; the 5 s count starts when both are seen down. A refresh of the progress dots (every 10 s) can delay that by 2–4 s. |
 | UP + DN while in AP mode | short: enable **standalone mode** (no WiFi, buttons only) and restart; long: information screen | Same detection as above. To leave standalone mode, use the power-on hold. |
 
 Heat number can only be set from the web interface / HTTP API.
@@ -216,7 +216,7 @@ forgiving).
 
 Remaining items:
 
-* The WiFi connect loop never times out (the only escape is holding both buttons).
+* The WiFi connect loop never times out (the only escape is holding both buttons for 5 s).
 
 ## Credits
 

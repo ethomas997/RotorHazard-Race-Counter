@@ -16,7 +16,7 @@
 
 #include <Arduino.h>
 
-#define FW_VERSION  "3.0.4"                     // shown on the settings page and in the serial banner
+#define FW_VERSION  "3.0.5"                     // shown on the settings page and in the serial banner
 #define PAGE_TITLE  "RotorHazard Race Counter"  // web page titles / headings
 
 #define DNSWITCH    D5
@@ -42,6 +42,7 @@
 
 #define CONNECT_POLL_MS     300     // how often to check for a WiFi connection (and the both-buttons escape) while connecting
 #define CONNECT_REFRESH_MS  10000   // how often to refresh the ePaper with progress dots while connecting
+#define CLEAR_HOLD_MS       5000    // how long both buttons must be held (at power-on or while connecting) to erase the WiFi settings
 
 #define BUTTON_DEBOUNCE_MS  20      // a button reading has to hold this long before it counts (filters contact bounce)
 #define BUTTON_COMBO_MS     250     // after one button goes down, how long to wait for the other before treating it as a single press

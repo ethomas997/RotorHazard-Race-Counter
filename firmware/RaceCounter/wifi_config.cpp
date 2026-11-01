@@ -47,8 +47,8 @@ String stationMacAddress() {
 //////////////////////////////////////////////////////////////////////////////
 //
 // Connects to the stored WiFi network, showing progress on the panel, then shows the IP address and MAC.
-// Does not return until connected; holding both buttons while it waits clears the credentials and restarts
-// (see checkClearAll).
+// Does not return until connected; holding both buttons for CLEAR_HOLD_MS while it waits clears the
+// credentials and restarts (see checkClearAll).
 //
 //////////////////////////////////////////////////////////////////////////////
 
@@ -60,11 +60,11 @@ void connectToWiFi() {
 
     startStatusScreen();
     epaper.print(charBuff);
+    epaper.setFreeFont(&FreeSans12pt7b);
+    epaper.printf("\n(Hold both buttons for %d seconds to\nclear the WiFi settings)\n\n", CLEAR_HOLD_MS / 1000);
     epaper.update();
 
     WiFi.begin(ssidStored, passStored);
-
-    epaper.setFreeFont(&FreeSans12pt7b);
 
     unsigned long lastRefresh = millis();
 
@@ -259,13 +259,24 @@ void setStandAlone() {
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// There are a couple of places where pushing both buttons on the display unit at the same time triggers a reset of the WiFi credentials. 
-// Checked immediately on startup, and during the Wifi connection loop (so the loop can be aborted if the credentials turn out to be no good).
-// This function is called in those places and if both buttons are presseed, it clears the stored SSID and password, shows a message on the display, and restarts after a delay.
+// Holding both buttons for CLEAR_HOLD_MS resets the WiFi credentials. Checked on startup, and during the
+// WiFi connection loop (so the loop can be aborted if the credentials turn out to be no good). If both
+// buttons are down, checkClearAll() waits; released early it returns and nothing happens, held for the full
+// time it clears the stored SSID, password and standalone flag, shows a message and restarts.
 //
 
+static bool bothButtonsDown() {
+    return digitalRead(UPSWITCH) == LOW && digitalRead(DNSWITCH) == LOW;
+}
+
 void checkClearAll() {
-    if ((digitalRead(UPSWITCH) == LOW) && (digitalRead(DNSWITCH) == LOW)) {
+    unsigned long start = millis();
+
+    while (bothButtonsDown()) {
+        if (millis() - start < CLEAR_HOLD_MS) {
+            delay(20);
+            continue;
+        }
         Serial.println("Clearing SSID and Password, then restarting");
 
         prefs.begin("wifi", false);
