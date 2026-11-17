@@ -396,6 +396,8 @@ void rhBegin() {
 
     sio.onEvent(onSocketIOEvent);
     sio.setReconnectInterval(RH_RECONNECT_MS);
+    sio.setExtraHeaders();                      // drop the library's default "Origin: file://": engine.io checks the origin only when
+                                                // one is sent, so this connects even if the server restricts its CORS allowed hosts
     sio.begin(host, port, "/socket.io/?EIO=4");
     lastRxAt = millis();
     linkLost = false;
